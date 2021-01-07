@@ -1,0 +1,10 @@
+﻿{
+    "specversion" : "1.0",
+    "type" : "user.updated",
+    "source" : "ClientApp",
+    "subject": null,
+    "id" : "123456789",
+    "time" : "2021-01-16T17:31:00X",
+    "datacontenttype" : "application/json",
+    "data" : []
+}

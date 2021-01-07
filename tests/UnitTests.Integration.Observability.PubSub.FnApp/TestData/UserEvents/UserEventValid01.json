@@ -1,0 +1,29 @@
+﻿{
+  "specversion" : "1.0",
+  "type" : "user.updated",
+  "source" : "ClientApp",
+  "subject": null,
+  "id" : "123456789",
+  "time" : "2021-01-16T17:31:00Z",
+  "datacontenttype" : "application/json",
+  "data": [
+    {
+      "id": 1,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 000"
+    },
+    {
+      "id": 2,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 000"
+    }
+  ]
+}
