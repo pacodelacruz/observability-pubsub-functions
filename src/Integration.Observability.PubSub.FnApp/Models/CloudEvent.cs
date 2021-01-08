@@ -11,6 +11,7 @@ namespace Integration.Observability.PubSub.FnApp.Models
     {
         public string SpecVersion { get; set; }
         public string Type { get; set; }
+        public string Source { get; set; }
         public string Subject { get; set; }
         public string Id { get; set; }
         public DateTime Time { get; set; }

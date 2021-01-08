@@ -10,9 +10,8 @@ namespace Integration.Observability.PubSub.FnApp.Models
     /// And particularly on Azure Functions here
     /// https://docs.microsoft.com/en-us/azure/architecture/serverless/code
     /// </summary>
-    class FunctionOptions
+    public class FunctionOptions
     {
-        public string ServiceBusUserUpdateQueueName { get; set; } = "userupdate-evt";
         public int ServiceBusUserUpdateQueueMaxDeliveryCount { get; set; } = 2;
     }
 }

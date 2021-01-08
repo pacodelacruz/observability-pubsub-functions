@@ -14,7 +14,8 @@
       "role": "Super Manager",
       "givenName": "Jane",
       "familyName": "Y",
-      "phoneNumber": "00 000 000 000"
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
     },
     {
       "id": 2,
@@ -23,7 +24,8 @@
       "role": "Super Role",
       "givenName": "John",
       "familyName": "X",
-      "phoneNumber": "00 000 000 000"
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
     }
   ]
 }
