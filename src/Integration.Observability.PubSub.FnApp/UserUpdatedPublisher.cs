@@ -42,22 +42,37 @@ namespace Integration.Observability.PubSub.FnApp
                 if (!TryDeserialiseUserEvents(eventsAsJson, out var userEventsMessage))
                 {
                     // Log PublisherBatchReceiptFailedBadRequest error due to invalid request body and return HTTP 400 with the invocation Id for correlation with the logged error message.
-
-                    log.LogStructured(LogLevel.Error, (int)TracingConstants.EventId.PublisherBatchReceiptFailedBadRequest, TracingConstants.SpanId.PublisherBatchReceipt, TracingConstants.Status.Failed, TracingConstants.MessageType.UserUpdateEvent, "Unavailable", "Invalid request body");
+                    log.LogStructured(LogLevel.Error, 
+                                      (int)TracingConstants.EventId.PublisherBatchReceiptFailedBadRequest, 
+                                      TracingConstants.SpanId.PublisherBatchReceipt, 
+                                      TracingConstants.Status.Failed, 
+                                      TracingConstants.MessageType.UserUpdateEvent, 
+                                      "Unavailable", "Invalid request body");
                     
-                    return new BadRequestObjectResult(new ApiResponse(StatusCodes.Status400BadRequest, ctx.InvocationId.ToString(), "Invalid body"));
+                    return new BadRequestObjectResult(new ApiResponse(StatusCodes.Status400BadRequest, ctx.InvocationId.ToString(), "Invalid request body"));
                 }
 
                 var userEvents = (List<UserEventDto>)userEventsMessage.Data;
 
                 // Log PublisherBatchReceiptSucceeded
-                log.LogStructured(LogLevel.Information, (int)TracingConstants.EventId.PublisherBatchReceiptSucceeded, TracingConstants.SpanId.PublisherBatchReceipt, TracingConstants.Status.Succeeded, TracingConstants.MessageType.UserUpdateEvent, userEventsMessage.Id, recordCount: userEvents.Count);
+                log.LogStructured(LogLevel.Information, 
+                                  (int)TracingConstants.EventId.PublisherBatchReceiptSucceeded,
+                                  TracingConstants.SpanId.PublisherBatchReceipt, 
+                                  TracingConstants.Status.Succeeded, 
+                                  TracingConstants.MessageType.UserUpdateEvent, 
+                                  userEventsMessage.Id, 
+                                  recordCount: userEvents.Count);
 
                 // Debatch the message into multiple events and send them to Service Bus
                 foreach (var userEvent in userEvents)
                 {
                     // Log PublisherReceiptSucceeded
-                    log.LogStructured(LogLevel.Information, (int)TracingConstants.EventId.PublisherReceiptSucceeded, TracingConstants.SpanId.PublisherReceipt, TracingConstants.Status.Succeeded, TracingConstants.MessageType.UserUpdateEvent, userEventsMessage.Id);
+                    log.LogStructured(LogLevel.Information, 
+                                      (int)TracingConstants.EventId.PublisherReceiptSucceeded, 
+                                      TracingConstants.SpanId.PublisherReceipt, 
+                                      TracingConstants.Status.Succeeded, 
+                                      TracingConstants.MessageType.UserUpdateEvent, 
+                                      userEventsMessage.Id);
 
                     // Create Service Bus message
                     var messageBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(userEvent));                    
@@ -77,7 +92,12 @@ namespace Integration.Observability.PubSub.FnApp
                     await queueCollector.AddAsync(userEventMessage);
 
                     // Log PublisherDeliverySucceeded
-                    log.LogStructured(LogLevel.Information, (int)TracingConstants.EventId.PublisherDeliverySucceeded, TracingConstants.SpanId.PublisherDelivery, TracingConstants.Status.Succeeded, TracingConstants.MessageType.UserUpdateEvent, userEventsMessage.Id);
+                    log.LogStructured(LogLevel.Information, 
+                                      (int)TracingConstants.EventId.PublisherDeliverySucceeded, 
+                                      TracingConstants.SpanId.PublisherDelivery, 
+                                      TracingConstants.Status.Succeeded, 
+                                      TracingConstants.MessageType.UserUpdateEvent, 
+                                      userEventsMessage.Id);
                 }
 
                 return new AcceptedResult();
@@ -86,8 +106,13 @@ namespace Integration.Observability.PubSub.FnApp
             {
                 {
                     // Log PublisherInternalServerError and return HTTP 500 with the invocation Id for correlation with the logged error message. 
-
-                    log.LogStructuredError(ex, (int)TracingConstants.EventId.PublisherInternalServerError, TracingConstants.SpanId.Publisher, TracingConstants.Status.Failed, TracingConstants.MessageType.UserUpdateEvent, "Unavailable", ex.Message);
+                    log.LogStructuredError(ex, 
+                                           (int)TracingConstants.EventId.PublisherInternalServerError, 
+                                           TracingConstants.SpanId.Publisher, 
+                                           TracingConstants.Status.Failed, 
+                                           TracingConstants.MessageType.UserUpdateEvent, 
+                                           "Unavailable", 
+                                           ex.Message);
 
                     return new ObjectResult(new ApiResponse(StatusCodes.Status500InternalServerError, ctx.InvocationId.ToString(), "Internal Server Error")) {StatusCode = StatusCodes.Status500InternalServerError };
                 }

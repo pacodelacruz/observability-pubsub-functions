@@ -45,10 +45,11 @@ namespace Integration.Observability.Constants
         /// </summary>
         public enum Status
         {
-            Succeeded, // The span operation succeeded.
-            AttemptFailed, // An attempt of the span operation failed. A retry is expected. 
-            Failed, // The span operation failed. A retry is not expected. 
-            Skipped // The span operation was not performed due to business rules. 
+            NotAvailable,   // The span status is not yet available
+            Succeeded,      // The span operation succeeded.
+            AttemptFailed,  // An attempt of the span operation failed. A retry is expected. 
+            Failed,         // The span operation failed. A retry is not expected. 
+            Skipped         // The span operation was not performed due to business rules. 
         }
 
         /// <summary>

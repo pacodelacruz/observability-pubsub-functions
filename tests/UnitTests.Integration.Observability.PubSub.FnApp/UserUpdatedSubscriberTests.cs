@@ -33,19 +33,29 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
 
             _userUpdatedSubscriber = new UserUpdatedSubscriber(_options);
 
-            using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            // Send log messages to the output window during debug. 
+            using var loggerFactory = LoggerFactory.Create(builder => builder.AddDebug());
             _consoleLogger = loggerFactory.CreateLogger<UserUpdatedSubscriber>();
         }
            
-        //TODO: Add test cases. 
         [Theory]
-        [InlineData("UserEventComplete01.json", 1, ServiceBusConstants.SettlementActions.Complete, TracingConstants.EventId.SubscriberDeliverySucceeded, null)]
+        [InlineData("UserEvent01ToComplete.json", 1, ServiceBusConstants.SettlementActions.Complete, TracingConstants.Status.Succeeded, TracingConstants.EventId.SubscriberDeliverySucceeded)]
+        [InlineData("UserEvent01ToComplete.json", 2, ServiceBusConstants.SettlementActions.Complete, TracingConstants.Status.Succeeded, TracingConstants.EventId.SubscriberDeliverySucceeded)]
+        [InlineData("UserEvent06ToUnreachableTarget.json", 1, ServiceBusConstants.SettlementActions.None, TracingConstants.Status.AttemptFailed, TracingConstants.EventId.SubscriberDeliveryUnreachableTarget)]
+        [InlineData("UserEvent06ToUnreachableTarget.json", 2, ServiceBusConstants.SettlementActions.None, TracingConstants.Status.Failed, TracingConstants.EventId.SubscriberDeliveryUnreachableTarget)]
+        [InlineData("UserEvent07MissingDependency.json", 1, ServiceBusConstants.SettlementActions.None, TracingConstants.Status.AttemptFailed, TracingConstants.EventId.SubscriberDeliveryFailedMissingDependency)]
+        [InlineData("UserEvent07MissingDependency.json", 2, ServiceBusConstants.SettlementActions.None, TracingConstants.Status.Failed, TracingConstants.EventId.SubscriberDeliveryFailedMissingDependency)]
+        [InlineData("UserEvent08SkipStaleMessage.json", 1, ServiceBusConstants.SettlementActions.Complete, TracingConstants.Status.Skipped, TracingConstants.EventId.SubscriberDeliverySkippedStaleMessage)]
+        [InlineData("UserEvent08SkipStaleMessage.json", 2, ServiceBusConstants.SettlementActions.Complete, TracingConstants.Status.Skipped, TracingConstants.EventId.SubscriberDeliverySkippedStaleMessage)]
+        [InlineData("UserEvent09InvalidMessage.json", 1, ServiceBusConstants.SettlementActions.DeadLetter, TracingConstants.Status.Failed, TracingConstants.EventId.SubscriberDeliveryFailedInvalidMessage)]
+        [InlineData("UserEvent09InvalidMessage.json", 2, ServiceBusConstants.SettlementActions.DeadLetter, TracingConstants.Status.Failed, TracingConstants.EventId.SubscriberDeliveryFailedInvalidMessage)]
+
         public void When_ProcessUserEvent_ReturnExpectedResult(
             string payloadFileName, 
             int deliveryCount, 
-            ServiceBusConstants.SettlementActions settlementAction, 
-            TracingConstants.EventId eventId, 
-            string message)
+            ServiceBusConstants.SettlementActions settlementAction,
+            TracingConstants.Status status,
+            TracingConstants.EventId eventId)
         {
             //Arrange
             var payload = TestDataHelper.GetTestDataStringFromFile("UserEvents", payloadFileName);
@@ -57,8 +67,28 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
             // Assert
             Assert.Equal(settlementAction, processResult.settlementAction);
             Assert.Equal(eventId, processResult.eventId);
-            Assert.Equal(message, processResult.message);
+            Assert.Equal(status, processResult.status);
         }
+
+        [Theory]
+        [InlineData("UserEvent99Exception.json", 1)]
+
+        public void When_ProcessUserEvent_ExpectException(
+            string payloadFileName,
+            int deliveryCount)
+        {
+            //Arrange
+            var payload = TestDataHelper.GetTestDataStringFromFile("UserEvents", payloadFileName);
+            var userEventMessage = CreateServiceBusMessage(payload);
+
+            // Act & Assert
+            var ex = Assert.Throws<ApplicationException>(() => _userUpdatedSubscriber.ProcessUserEvent(userEventMessage, deliveryCount, _consoleLogger));
+
+            // Assert
+
+        }
+
+        #region Private Methods
 
         private Message CreateServiceBusMessage(string body)
         {
@@ -80,5 +110,7 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
 
             return userEventMessage;
         }
+
+        #endregion
     }
 }

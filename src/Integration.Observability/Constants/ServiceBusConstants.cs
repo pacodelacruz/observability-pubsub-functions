@@ -11,6 +11,7 @@ namespace Integration.Observability.Constants
         /// </summary>
         public enum SettlementActions
         {
+            None,
             Abandon,
             Close,
             Complete,

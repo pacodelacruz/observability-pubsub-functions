@@ -11,34 +11,34 @@ namespace Integration.Observability.Extensions
     /// </summary>
     public static class LoggerExtensions
     {
-        private const string Template = "{Message}, {MessageType}, {SpanId}, {Status}, {CorrelationId}";
+        private const string _template = "{Message}, {MessageType}, {SpanId}, {Status}, {CorrelationId}, {DeliveryCount}, {RecordCount}";
 
         public static void LogStructured(this ILogger logger,
             LogLevel level, int eventId, TracingConstants.SpanId spanId, TracingConstants.Status status,
-            TracingConstants.MessageType messageType, string correlationId, string message = null, int? recordCount = null, int? deliveryCount = null)
+            TracingConstants.MessageType messageType, string correlationId, string message = null, string deliveryCount = null, int? recordCount = null)
         {
-            string customTemplate = CustomiseTemplate(Template, recordCount, deliveryCount);
-            logger.Log(level, new EventId(eventId), customTemplate, message, messageType, spanId, status, correlationId, recordCount, deliveryCount);
+            //string customTemplate = CustomiseTemplate(_template, recordCount, deliveryCount);
+            logger.Log(level, new EventId(eventId), _template, message, messageType, spanId, status, correlationId, deliveryCount, recordCount);
         }
 
-        public static void LogStructuredError(this ILogger logger, 
+        public static void LogStructuredError(this ILogger logger,
             Exception ex, int eventId, TracingConstants.SpanId spanId, TracingConstants.Status status,
-            TracingConstants.MessageType messageType, string correlationId, string message = null, int? recordCount = null, int? deliveryCount = null)
+            TracingConstants.MessageType messageType, string correlationId, string message = null, string deliveryCount = null, int? recordCount = null)
         {
-            string customTemplate = CustomiseTemplate(Template, recordCount, deliveryCount);
-            logger.Log(LogLevel.Error, new EventId(eventId), ex, customTemplate, message, messageType, spanId, status, correlationId, recordCount, deliveryCount);
+            //string customTemplate = CustomiseTemplate(_template, recordCount, deliveryCount);
+            logger.Log(LogLevel.Error, new EventId(eventId), ex, _template, message, messageType, spanId, status, correlationId, deliveryCount, recordCount);
         }
 
-        private static string CustomiseTemplate(string originalTemplate, int? recordCount, int? deliveryCount)
-        {
-            string customTemplate = originalTemplate;
+        //private static string CustomiseTemplate(string originalTemplate, int? recordCount, int? deliveryCount)
+        //{
+        //    string customTemplate = originalTemplate;
 
-            if (recordCount.HasValue)
-                customTemplate = originalTemplate + ", {RecordCount}";
-            if (deliveryCount.HasValue)
-                customTemplate = originalTemplate + ", {DeliveryCount}";
+        //    if (recordCount.HasValue)
+        //        customTemplate = originalTemplate + ", {RecordCount}";
+        //    if (deliveryCount.HasValue)
+        //        customTemplate = originalTemplate + ", {DeliveryCount}";
 
-            return customTemplate;
-        }
+        //    return customTemplate;
+        //}
     }
 }
