@@ -64,4 +64,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="TestData\RestClient\" />
+  </ItemGroup>
+
 </Project>

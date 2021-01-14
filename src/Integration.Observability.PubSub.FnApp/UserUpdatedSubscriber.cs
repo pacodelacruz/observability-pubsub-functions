@@ -32,7 +32,7 @@ namespace Integration.Observability.PubSub.FnApp
             ILogger log)
         {
             // Do most of the processing in a separate method for testability. 
-            var processResult = ProcessUserEvent(userEventMessage, deliveryCount, log);
+            var processResult = ProcessUserEventSubscription(userEventMessage, deliveryCount, log);
 
             // Settle the message based on the process result. 
             switch (processResult.settlementAction)
@@ -66,7 +66,7 @@ namespace Integration.Observability.PubSub.FnApp
         /// <param name="log"></param>
         /// <returns></returns>
         public (ServiceBusConstants.SettlementActions settlementAction, TracingConstants.EventId eventId, TracingConstants.Status status, string message)
-            ProcessUserEvent(Message userEventMessage, int deliveryCount, ILogger log)
+            ProcessUserEventSubscription(Message userEventMessage, int deliveryCount, ILogger log)
         {
             var settlementAction = ServiceBusConstants.SettlementActions.None;
             string deliveryCountToLog = $"{deliveryCount}/{_options.Value.ServiceBusUserUpdateQueueMaxDeliveryCount}";
@@ -148,6 +148,10 @@ namespace Integration.Observability.PubSub.FnApp
         /// <returns>The status of the process</returns>
         private static (TracingConstants.EventId eventId, TracingConstants.Status, string message, bool doNotRetry) DeliverToTargetSystem(UserEventDto userEvent)
         {
+
+            Random randomGenerator = new Random();
+            int randomNumber = randomGenerator.Next(0, 2);
+
             if (userEvent.PhoneNumber.EndsWith("99"))
             {
                 // Simulate an unhandled exception.
@@ -171,11 +175,22 @@ namespace Integration.Observability.PubSub.FnApp
             }
             else if (userEvent.PhoneNumber.EndsWith("07"))
             {
-                // A transient error is received. A dependency is not ready in the target system. 
-                return (TracingConstants.EventId.SubscriberDeliveryFailedMissingDependency,
-                        TracingConstants.Status.Failed, 
-                        "Dependency entity not available",
-                        doNotRetry: false);
+                if (randomNumber == 0)
+                {
+                    // A transient error is received. A dependency is not ready in the target system. 
+                    return (TracingConstants.EventId.SubscriberDeliveryFailedMissingDependency,
+                            TracingConstants.Status.Failed,
+                            "Dependency entity not available",
+                            doNotRetry: false);
+                }
+                else
+                {
+                    // Delivery to target system was successful
+                    return (TracingConstants.EventId.SubscriberDeliverySucceeded,
+                            TracingConstants.Status.Succeeded,
+                            null,
+                            doNotRetry: true);
+                }
             }
             else if (userEvent.PhoneNumber.EndsWith("06"))
             {

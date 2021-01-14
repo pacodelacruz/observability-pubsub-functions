@@ -5,13 +5,20 @@ using Microsoft.Extensions.Options;
 using System.IO;
 using UnitTests.Integration.Observability.PubSub.FnApp.Helpers;
 using Xunit;
+using Microsoft.Extensions.Logging;
+using System;
+using Microsoft.AspNetCore.Http;
+using Integration.Observability.Constants;
+using Microsoft.AspNetCore.Mvc;
 
 namespace UnitTests.Integration.Observability.PubSub.FnApp
 {
     public class UserUpdatedPublisherTests
     {
         private IOptions<FunctionOptions> _options;
-        
+        private UserUpdatedPublisher _userUpdatedPublisher;
+        private ILogger _consoleLogger;
+
 
         public UserUpdatedPublisherTests()
         {
@@ -22,6 +29,12 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
                .Build();
 
             _options = Options.Create(configuration.GetSection("Values").Get<FunctionOptions>());
+
+            _userUpdatedPublisher = new UserUpdatedPublisher(_options);
+
+            // Send log messages to the output window during debug. 
+            using var loggerFactory = LoggerFactory.Create(builder => builder.AddDebug());
+            _consoleLogger = loggerFactory.CreateLogger<UserUpdatedSubscriber>();
         }
             
         [Theory]
@@ -54,6 +67,44 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
 
             // Assert
             Assert.True(isValid);
+        }
+
+        [Theory]
+        [InlineData("UserEventValid01.json", 2)]
+        public void When_ValidPayloadRequest_ReceiveAccepted(string payloadFileName, int messageCount)
+        {
+            //Arrange
+            var payload = TestDataHelper.GetTestDataStringFromFile("UserEventsCloudEvents", payloadFileName);
+            var userUpdatedPublisher = new UserUpdatedPublisher(_options);
+
+            // Act
+            var processResult = userUpdatedPublisher.ProcessUserEventPublishing(payload, Guid.NewGuid().ToString(), _consoleLogger);
+                
+            //Assert
+            var objectResult = processResult.requestResult as ObjectResult;
+
+            Assert.NotNull(objectResult);
+            Assert.Equal(StatusCodes.Status202Accepted, objectResult.StatusCode);
+            Assert.Equal(messageCount, processResult.messages.Count);
+        }
+
+        [Theory]
+        [InlineData("UserEventInvalidDate.json")]
+        [InlineData("UserEventInvalidEmptyArray.json")]
+        public void When_InValidPayloadRequest_ReceiveBadRequest(string payloadFileName)
+        {
+            //Arrange
+            var payload = TestDataHelper.GetTestDataStringFromFile("UserEventsCloudEvents", payloadFileName);
+            var userUpdatedPublisher = new UserUpdatedPublisher(_options);
+
+            // Act
+            var processResult = userUpdatedPublisher.ProcessUserEventPublishing(payload, Guid.NewGuid().ToString(), _consoleLogger);
+
+            //Assert
+            var objectResult = processResult.requestResult as ObjectResult;
+
+            Assert.NotNull(objectResult);
+            Assert.Equal(StatusCodes.Status400BadRequest, objectResult.StatusCode);
         }
     }
 }

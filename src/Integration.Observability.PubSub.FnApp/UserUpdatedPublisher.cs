@@ -37,70 +37,89 @@ namespace Integration.Observability.PubSub.FnApp
             {
                 string eventsAsJson = await new StreamReader(req.Body).ReadToEndAsync();
 
+                // Do most of the processing in a separate method for testability. 
+                var processResult = ProcessUserEventPublishing(eventsAsJson, ctx.InvocationId.ToString(), log);
+
                 // TODO: Log every payload to blob. 
-                
-                if (!TryDeserialiseUserEvents(eventsAsJson, out var userEventsMessage))
+
+                //if (!TryDeserialiseUserEvents(eventsAsJson, out var userEventsMessage))
+                //{
+                //    // Log PublisherBatchReceiptFailedBadRequest error due to invalid request body and return HTTP 400 with the invocation Id for correlation with the logged error message.
+                //    log.LogStructured(LogLevel.Error, 
+                //                      (int)TracingConstants.EventId.PublisherBatchReceiptFailedBadRequest, 
+                //                      TracingConstants.SpanId.PublisherBatchReceipt, 
+                //                      TracingConstants.Status.Failed, 
+                //                      TracingConstants.MessageType.UserUpdateEvent, 
+                //                      "Unavailable", "Invalid request body");
+
+                //    return new BadRequestObjectResult(new ApiResponse(StatusCodes.Status400BadRequest, ctx.InvocationId.ToString(), "Invalid request body"));
+                //}
+
+                //var userEvents = (List<UserEventDto>)userEventsMessage.Data;
+
+                //// Log PublisherBatchReceiptSucceeded
+                //log.LogStructured(LogLevel.Information, 
+                //                  (int)TracingConstants.EventId.PublisherBatchReceiptSucceeded,
+                //                  TracingConstants.SpanId.PublisherBatchReceipt, 
+                //                  TracingConstants.Status.Succeeded, 
+                //                  TracingConstants.MessageType.UserUpdateEvent, 
+                //                  userEventsMessage.Id, 
+                //                  recordCount: userEvents.Count);
+
+                //// Debatch the message into multiple events and send them to Service Bus
+                //foreach (var userEvent in userEvents)
+                //{
+                //    // Log PublisherReceiptSucceeded
+                //    log.LogStructured(LogLevel.Information, 
+                //                      (int)TracingConstants.EventId.PublisherReceiptSucceeded, 
+                //                      TracingConstants.SpanId.PublisherReceipt, 
+                //                      TracingConstants.Status.Succeeded, 
+                //                      TracingConstants.MessageType.UserUpdateEvent, 
+                //                      userEventsMessage.Id);
+
+                //    // Create Service Bus message
+                //    var messageBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(userEvent));                    
+
+                //    var userEventMessage = new Message(messageBody) { 
+                //        MessageId = $"{userEventsMessage.Id}.{userEvent.Id}"
+                //    };
+
+                //    // Add user properties to the Service Bus message
+                //    userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.TraceId.ToString(), ctx.InvocationId.ToString());
+                //    userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), userEventsMessage.Id);
+                //    userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), userEvent.Id.ToString());
+                //    userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Source.ToString(), userEventsMessage.Source);
+                //    userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Timestamp.ToString(), userEvent.Timestamp.ToString("o"));
+
+                //    // Add the message to the queue Collector for delivery
+                //    await queueCollector.AddAsync(userEventMessage);
+
+                //    // Log PublisherDeliverySucceeded
+                //    log.LogStructured(LogLevel.Information, 
+                //                      (int)TracingConstants.EventId.PublisherDeliverySucceeded, 
+                //                      TracingConstants.SpanId.PublisherDelivery, 
+                //                      TracingConstants.Status.Succeeded, 
+                //                      TracingConstants.MessageType.UserUpdateEvent, 
+                //                      userEventsMessage.Id);
+                //}
+
+                //return new AcceptedResult();
+
+                foreach (var message in processResult.messages)
                 {
-                    // Log PublisherBatchReceiptFailedBadRequest error due to invalid request body and return HTTP 400 with the invocation Id for correlation with the logged error message.
-                    log.LogStructured(LogLevel.Error, 
-                                      (int)TracingConstants.EventId.PublisherBatchReceiptFailedBadRequest, 
-                                      TracingConstants.SpanId.PublisherBatchReceipt, 
-                                      TracingConstants.Status.Failed, 
-                                      TracingConstants.MessageType.UserUpdateEvent, 
-                                      "Unavailable", "Invalid request body");
-                    
-                    return new BadRequestObjectResult(new ApiResponse(StatusCodes.Status400BadRequest, ctx.InvocationId.ToString(), "Invalid request body"));
-                }
-
-                var userEvents = (List<UserEventDto>)userEventsMessage.Data;
-
-                // Log PublisherBatchReceiptSucceeded
-                log.LogStructured(LogLevel.Information, 
-                                  (int)TracingConstants.EventId.PublisherBatchReceiptSucceeded,
-                                  TracingConstants.SpanId.PublisherBatchReceipt, 
-                                  TracingConstants.Status.Succeeded, 
-                                  TracingConstants.MessageType.UserUpdateEvent, 
-                                  userEventsMessage.Id, 
-                                  recordCount: userEvents.Count);
-
-                // Debatch the message into multiple events and send them to Service Bus
-                foreach (var userEvent in userEvents)
-                {
-                    // Log PublisherReceiptSucceeded
-                    log.LogStructured(LogLevel.Information, 
-                                      (int)TracingConstants.EventId.PublisherReceiptSucceeded, 
-                                      TracingConstants.SpanId.PublisherReceipt, 
-                                      TracingConstants.Status.Succeeded, 
-                                      TracingConstants.MessageType.UserUpdateEvent, 
-                                      userEventsMessage.Id);
-
-                    // Create Service Bus message
-                    var messageBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(userEvent));                    
-
-                    var userEventMessage = new Message(messageBody) { 
-                        MessageId = $"{userEventsMessage.Id}.{userEvent.Id}"
-                    };
-
-                    // Add user properties to the Service Bus message
-                    userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.TraceId.ToString(), ctx.InvocationId.ToString());
-                    userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), userEventsMessage.Id);
-                    userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), userEvent.Id.ToString());
-                    userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Source.ToString(), userEventsMessage.Source);
-                    userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Timestamp.ToString(), userEvent.Timestamp.ToString("o"));
-
                     // Add the message to the queue Collector for delivery
-                    await queueCollector.AddAsync(userEventMessage);
+                    await queueCollector.AddAsync(message);
 
                     // Log PublisherDeliverySucceeded
-                    log.LogStructured(LogLevel.Information, 
-                                      (int)TracingConstants.EventId.PublisherDeliverySucceeded, 
-                                      TracingConstants.SpanId.PublisherDelivery, 
-                                      TracingConstants.Status.Succeeded, 
-                                      TracingConstants.MessageType.UserUpdateEvent, 
-                                      userEventsMessage.Id);
+                    log.LogStructured(LogLevel.Information,
+                                      (int)TracingConstants.EventId.PublisherDeliverySucceeded,
+                                      TracingConstants.SpanId.PublisherDelivery,
+                                      TracingConstants.Status.Succeeded,
+                                      TracingConstants.MessageType.UserUpdateEvent,
+                                      processResult.userEventsMessage.Id);
                 }
 
-                return new AcceptedResult();
+                return processResult.requestResult;
             }
             catch (Exception ex)
             {
@@ -117,6 +136,77 @@ namespace Integration.Observability.PubSub.FnApp
                     return new ObjectResult(new ApiResponse(StatusCodes.Status500InternalServerError, ctx.InvocationId.ToString(), "Internal Server Error")) {StatusCode = StatusCodes.Status500InternalServerError };
                 }
             }
+        }
+
+
+        public (IActionResult requestResult, List<Message> messages, CloudEvent userEventsMessage)
+            ProcessUserEventPublishing(string eventsAsJson, string invocationId, ILogger log)
+        {
+            var messages = new List<Message>();
+
+            if (!TryDeserialiseUserEvents(eventsAsJson, out var userEventsMessage))
+            {
+                // Log PublisherBatchReceiptFailedBadRequest error due to invalid request body and return HTTP 400 with the invocation Id for correlation with the logged error message.
+                log.LogStructured(LogLevel.Error,
+                                  (int)TracingConstants.EventId.PublisherBatchReceiptFailedBadRequest,
+                                  TracingConstants.SpanId.PublisherBatchReceipt,
+                                  TracingConstants.Status.Failed,
+                                  TracingConstants.MessageType.UserUpdateEvent,
+                                  "Unavailable", "Invalid request body");
+
+                return (new BadRequestObjectResult(new ApiResponse(StatusCodes.Status400BadRequest, invocationId, "Invalid request body")), null, null);
+            }
+
+            var userEvents = (List<UserEventDto>)userEventsMessage.Data;
+
+            // Log PublisherBatchReceiptSucceeded
+            log.LogStructured(LogLevel.Information,
+                              (int)TracingConstants.EventId.PublisherBatchReceiptSucceeded,
+                              TracingConstants.SpanId.PublisherBatchReceipt,
+                              TracingConstants.Status.Succeeded,
+                              TracingConstants.MessageType.UserUpdateEvent,
+                              userEventsMessage.Id,
+                              recordCount: userEvents.Count);
+
+            // Debatch the message into multiple events and send them to Service Bus
+            foreach (var userEvent in userEvents)
+            {
+                // Log PublisherReceiptSucceeded
+                log.LogStructured(LogLevel.Information,
+                                  (int)TracingConstants.EventId.PublisherReceiptSucceeded,
+                                  TracingConstants.SpanId.PublisherReceipt,
+                                  TracingConstants.Status.Succeeded,
+                                  TracingConstants.MessageType.UserUpdateEvent,
+                                  userEventsMessage.Id);
+
+                // Create Service Bus message
+                var messageBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(userEvent));
+
+                var userEventMessage = new Message(messageBody)
+                {
+                    MessageId = $"{userEventsMessage.Id}.{userEvent.Id}"
+                };
+
+                // Add user properties to the Service Bus message
+                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.TraceId.ToString(), invocationId);
+                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), userEventsMessage.Id);
+                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), userEvent.Id.ToString());
+                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Source.ToString(), userEventsMessage.Source);
+                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Timestamp.ToString(), userEvent.Timestamp.ToString("o"));
+
+                // Add the message to the list
+                messages.Add(userEventMessage);
+
+                //// Log PublisherDeliverySucceeded
+                //log.LogStructured(LogLevel.Information,
+                //                  (int)TracingConstants.EventId.PublisherDeliverySucceeded,
+                //                  TracingConstants.SpanId.PublisherDelivery,
+                //                  TracingConstants.Status.Succeeded,
+                //                  TracingConstants.MessageType.UserUpdateEvent,
+                //                  userEventsMessage.Id);
+            }
+
+            return (new ObjectResult(new ApiResponse(StatusCodes.Status202Accepted, invocationId, "Accepted")) { StatusCode = StatusCodes.Status202Accepted }, messages, userEventsMessage);
         }
 
         /// <summary>
