@@ -4,6 +4,9 @@ using System.Text;
 
 namespace Integration.Observability.PubSub.FnApp.Models
 {
+    /// <summary>
+    /// Represents a User Event 
+    /// </summary>
     public class UserEventDto
     {
         public int Id { get; set; }

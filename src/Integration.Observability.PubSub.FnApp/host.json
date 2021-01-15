@@ -3,8 +3,8 @@
   "logging": {
     "logLevel": {
       "default": "Information",
-      "Host": "Error",
       "Function": "Information",
+      "Host": "Error",
       "Host.Aggregator": "Information"
     },
     "applicationInsights": {
@@ -14,16 +14,17 @@
       }
     }
   },
-  "serviceBus": {
-    "prefetchCount": 0,
-    "messageHandlerOptions": {
-      "maxConcurrentCalls": 16,
-      "autoComplete": false
-    }
-  },
   "extensions": {
     "http": {
       "routePrefix": ""
+    },
+    "serviceBus": {
+      "prefetchCount": 0,
+      "messageHandlerOptions": {
+        "maxConcurrentCalls": 16,
+        "autoComplete": false,
+        "maxAutoRenewDuration": "00:05:00"
+      }
     }
   }
 }

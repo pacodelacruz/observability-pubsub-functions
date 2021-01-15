@@ -19,17 +19,15 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
         private UserUpdatedPublisher _userUpdatedPublisher;
         private ILogger _consoleLogger;
 
-
         public UserUpdatedPublisherTests()
         {
-            // Load configuration options from the app settings of the test project. 
+            // Load configuration options from the appsettings.json file in the test project. 
             var configuration = new ConfigurationBuilder()
                .SetBasePath(Directory.GetCurrentDirectory())
                .AddJsonFile("appsettings.json", false)
                .Build();
 
             _options = Options.Create(configuration.GetSection("Values").Get<FunctionOptions>());
-
             _userUpdatedPublisher = new UserUpdatedPublisher(_options);
 
             // Send log messages to the output window during debug. 
@@ -45,10 +43,10 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
         {
             //Arrange
             var payload = TestDataHelper.GetTestDataStringFromFile("UserEventsCloudEvents", payloadFileName);
-            var userUpdatedPublisher = new UserUpdatedPublisher(_options);
+            var _userUpdatedPublisher = new UserUpdatedPublisher(_options);
 
             // Act
-            var isValid = userUpdatedPublisher.TryDeserialiseUserEvents(payload, out var cloudEvent);
+            var isValid = _userUpdatedPublisher.TryDeserialiseUserEvents(payload, out var cloudEvent);
 
             // Assert
             Assert.False(isValid);
@@ -60,10 +58,9 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
         {
             //Arrange
             var payload = TestDataHelper.GetTestDataStringFromFile("UserEventsCloudEvents", payloadFileName);
-            var userUpdatedPublisher = new UserUpdatedPublisher(_options);
 
             // Act
-            var isValid = userUpdatedPublisher.TryDeserialiseUserEvents(payload, out var cloudEvent);
+            var isValid = _userUpdatedPublisher.TryDeserialiseUserEvents(payload, out var cloudEvent);
 
             // Assert
             Assert.True(isValid);
@@ -75,13 +72,12 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
         {
             //Arrange
             var payload = TestDataHelper.GetTestDataStringFromFile("UserEventsCloudEvents", payloadFileName);
-            var userUpdatedPublisher = new UserUpdatedPublisher(_options);
 
             // Act
-            var processResult = userUpdatedPublisher.ProcessUserEventPublishing(payload, Guid.NewGuid().ToString(), _consoleLogger);
+            var processResult = _userUpdatedPublisher.ProcessUserEventPublishing(payload, Guid.NewGuid().ToString(), _consoleLogger);
                 
             //Assert
-            var objectResult = processResult.requestResult as ObjectResult;
+            var objectResult = processResult.httpResponse as ObjectResult;
 
             Assert.NotNull(objectResult);
             Assert.Equal(StatusCodes.Status202Accepted, objectResult.StatusCode);
@@ -95,13 +91,12 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
         {
             //Arrange
             var payload = TestDataHelper.GetTestDataStringFromFile("UserEventsCloudEvents", payloadFileName);
-            var userUpdatedPublisher = new UserUpdatedPublisher(_options);
 
             // Act
-            var processResult = userUpdatedPublisher.ProcessUserEventPublishing(payload, Guid.NewGuid().ToString(), _consoleLogger);
+            var processResult = _userUpdatedPublisher.ProcessUserEventPublishing(payload, Guid.NewGuid().ToString(), _consoleLogger);
 
             //Assert
-            var objectResult = processResult.requestResult as ObjectResult;
+            var objectResult = processResult.httpResponse as ObjectResult;
 
             Assert.NotNull(objectResult);
             Assert.Equal(StatusCodes.Status400BadRequest, objectResult.StatusCode);

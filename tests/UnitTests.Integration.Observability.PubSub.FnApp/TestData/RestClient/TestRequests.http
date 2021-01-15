@@ -1,0 +1,257 @@
+### Variables
+@localhost=http://localhost:7071
+@functionHost=https://fncapp-xyz.azurewebsites.net
+@host={{functionHost}}
+
+### Send
+POST {{host}}/userupdated
+Content-Type: application/json
+
+{
+  "specversion" : "1.0",
+  "type" : "user.updated",
+  "source" : "ClientApp",
+  "subject": null,
+  "id" : "123456789",
+  "time" : "2021-01-16T17:31:00Z",
+  "datacontenttype" : "application/json",
+  "data": [
+    {
+      "id": 1,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 2,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
+    }
+  ]
+}
+
+
+###
+POST {{host}}/userupdated
+Content-Type: application/json
+
+{
+  "specversion" : "1.0",
+  "type" : "user.updated",
+  "source" : "ClientApp",
+  "subject": null,
+  "id" : "123456789ABCD",
+  "time" : "2021-01-16T17:31:00Z",
+  "datacontenttype" : "application/json",
+  "data": [
+    {
+      "id": 1,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 2,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 3,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 4,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 5,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 6,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 7,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 099",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 8,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 009",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 9,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 008",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 10,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 007",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 11,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 007",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 12,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 007",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 13,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 007",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 14,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 006",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 15,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 005",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 16,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 004",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 17,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 003",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 18,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 002",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 19,
+      "userName": "janey",
+      "email": "janey@demo.com.au",
+      "role": "Super Manager",
+      "givenName": "Jane",
+      "familyName": "Y",
+      "phoneNumber": "00 000 000 001",
+      "timestamp": "2021-01-16T17:31:00Z"
+    },
+    {
+      "id": 20,
+      "userName": "johnx",
+      "email": "johnx@demo.com.au",
+      "role": "Super Role",
+      "givenName": "John",
+      "familyName": "X",
+      "phoneNumber": "00 000 000 000",
+      "timestamp": "2021-01-16T17:31:00Z"
+    }
+  ]
+}

@@ -13,17 +13,17 @@ namespace Integration.Observability.Helpers
         /// </summary>
         /// <param name="status"></param>
         /// <returns>LogLevel</returns>
-        public static LogLevel CalculateLogLevel(TracingConstants.Status status)
+        public static LogLevel CalculateLogLevel(LoggingConstants.Status status)
         {
             switch (status)
             {
-                case TracingConstants.Status.Succeeded:
+                case LoggingConstants.Status.Succeeded:
                     return LogLevel.Information;
-                case TracingConstants.Status.AttemptFailed:
+                case LoggingConstants.Status.AttemptFailed:
                     return LogLevel.Warning;                    
-                case TracingConstants.Status.Failed:
+                case LoggingConstants.Status.Failed:
                     return LogLevel.Error;
-                case TracingConstants.Status.Skipped:
+                case LoggingConstants.Status.Skipped:
                     return LogLevel.Warning;
                 default:
                     return LogLevel.Information;

@@ -4,6 +4,9 @@ using System.Text;
 
 namespace Integration.Observability.Constants
 {
+    /// <summary>
+    /// Constants related to Service Bus
+    /// </summary>
     public class ServiceBusConstants
     {
         /// <summary>

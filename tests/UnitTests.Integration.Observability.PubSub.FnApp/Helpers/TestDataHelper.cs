@@ -7,6 +7,12 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp.Helpers
 {
     internal static class TestDataHelper
     {
+        /// <summary>
+        /// Gets test data as a string from a file
+        /// </summary>
+        /// <param name="subfolder"></param>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
         internal static string GetTestDataStringFromFile(string subfolder, string fileName)
         {
             // Gets the file path depending on the operating system

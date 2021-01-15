@@ -4,17 +4,23 @@ using System.Text;
 
 namespace Integration.Observability.Constants
 {
-    public class TracingConstants
+    /// <summary>
+    /// Constants used for Logging and Tracing
+    /// </summary>
+    public class LoggingConstants
     {
+        /// <summary>
+        /// To identify the tracing span
+        /// </summary>
         public enum SpanId
         {
-            Publisher, // The publisher interface span. Only for those tracing events that cannot be specific.
-            PublisherBatchReceipt, // Span related to the receipt of a batch message in the publisher interface.
-            PublisherReceipt, // Span related to the receipt of an individual message in the publisher interface.
-            PublisherDelivery, // Span related to the publishing of an individual message in the publisher interface.
-            Subscriber, // The subscriber interface span. Only for those tracing events that cannot be specific.
-            SubscriberReceipt, // Span related to the receipt of a message in the subscriber interface.
-            SubscriberDelivery // Span related to the delivery of a message in the subscriber interface.
+            Publisher,              // The publisher interface span. Only for those tracing events that cannot be specific.
+            PublisherBatchReceipt,  // Span related to the receipt of a batch message in the publisher interface.
+            PublisherReceipt,       // Span related to the receipt of an individual message in the publisher interface.
+            PublisherDelivery,      // Span related to the publishing of an individual message in the publisher interface.
+            Subscriber,             // The subscriber interface span. Only for those tracing events that cannot be specific.
+            SubscriberReceipt,      // Span related to the receipt of a message in the subscriber interface.
+            SubscriberDelivery      // Span related to the delivery of a message in the subscriber interface.
         }
 
         /// <summary>

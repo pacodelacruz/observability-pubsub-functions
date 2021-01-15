@@ -22,6 +22,14 @@ namespace Integration.Observability.PubSub.FnApp
             _options = options;
         }
 
+    /// <summary>
+    /// Receives a Service Bus message and process it. 
+    /// </summary>
+    /// <param name="userEventMessage"></param>
+    /// <param name="lockToken"></param>
+    /// <param name="messageReceiver"></param>
+    /// <param name="deliveryCount"></param>
+    /// <param name="log"></param>
     [FunctionName(nameof(UserUpdatedSubscriber))]
         public async void Run(
             [ServiceBusTrigger("%ServiceBusUserUpdateQueueName%", Connection = "ServiceBusConnectionString")] 
@@ -34,7 +42,7 @@ namespace Integration.Observability.PubSub.FnApp
             // Do most of the processing in a separate method for testability. 
             var processResult = ProcessUserEventSubscription(userEventMessage, deliveryCount, log);
 
-            // Settle the message based on the process result. 
+            // Settle the Service Bus message based on the process result. 
             switch (processResult.settlementAction)
             {
                 case ServiceBusConstants.SettlementActions.None:
@@ -65,7 +73,7 @@ namespace Integration.Observability.PubSub.FnApp
         /// <param name="deliveryCount"></param>
         /// <param name="log"></param>
         /// <returns></returns>
-        public (ServiceBusConstants.SettlementActions settlementAction, TracingConstants.EventId eventId, TracingConstants.Status status, string message)
+        public (ServiceBusConstants.SettlementActions settlementAction, LoggingConstants.EventId eventId, LoggingConstants.Status status, string message)
             ProcessUserEventSubscription(Message userEventMessage, int deliveryCount, ILogger log)
         {
             var settlementAction = ServiceBusConstants.SettlementActions.None;
@@ -73,49 +81,54 @@ namespace Integration.Observability.PubSub.FnApp
 
             // Get message properties, read, and deserialise body. 
             userEventMessage.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), out var eventBatchCorrelationId);
+            userEventMessage.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), out var entityId);
             var messageBody = Encoding.UTF8.GetString(userEventMessage.Body);
             var userEvent = JsonSerializer.Deserialize<UserEventDto>(messageBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
             // Log SubscriberReceiptSucceeded
             log.LogStructured(LogLevel.Information,
-                              (int)TracingConstants.EventId.SubscriberReceiptSucceeded,
-                              TracingConstants.SpanId.SubscriberReceipt,
-                              TracingConstants.Status.Succeeded,
-                              TracingConstants.MessageType.UserUpdateEvent,
+                              (int)LoggingConstants.EventId.SubscriberReceiptSucceeded,
+                              LoggingConstants.SpanId.SubscriberReceipt,
+                              LoggingConstants.Status.Succeeded,
+                              LoggingConstants.MessageType.UserUpdateEvent,
                               eventBatchCorrelationId.ToString(),
+                              entityId.ToString(),
                               deliveryCount: deliveryCountToLog);
 
             // Check if the current delivery count equals the max delivery count for the queue. 
             bool isLastAttempt = (deliveryCount == _options.Value.ServiceBusUserUpdateQueueMaxDeliveryCount);
-            var processResultStatus = TracingConstants.Status.NotAvailable;
+            var processResultStatus = LoggingConstants.Status.NotAvailable;
 
             try
             {
-                (TracingConstants.EventId eventId, TracingConstants.Status status, string message, bool doNotRetry) processResult = 
+                // Simulate delivery to target system
+                (LoggingConstants.EventId eventId, LoggingConstants.Status status, string message, bool doNotRetry) processResult = 
                     DeliverToTargetSystem(userEvent);
 
                 processResultStatus = processResult.status;
 
-                // If the process did not return doNotRetry and it is not the last attemp, then change from Failed to AttemptFailed
-                if (!processResult.doNotRetry && processResult.status == TracingConstants.Status.Failed && !isLastAttempt)
-                    processResultStatus = TracingConstants.Status.AttemptFailed;
+                // If it is not the last delivery attempt, the process did not return doNotRetry and the process failed, then change from Failed to AttemptFailed
+                if (!isLastAttempt && !processResult.doNotRetry && processResult.status == LoggingConstants.Status.Failed )
+                    processResultStatus = LoggingConstants.Status.AttemptFailed;
 
+                // Log process result
                 log.LogStructured(LoggerHelper.CalculateLogLevel(processResult.status),
                                   (int)processResult.eventId,
-                                  TracingConstants.SpanId.SubscriberDelivery,
+                                  LoggingConstants.SpanId.SubscriberDelivery,
                                   processResultStatus,
-                                  TracingConstants.MessageType.UserUpdateEvent,
+                                  LoggingConstants.MessageType.UserUpdateEvent,
                                   eventBatchCorrelationId.ToString(),
+                                  entityId.ToString(),
                                   message: processResult.message,
                                   deliveryCount: deliveryCountToLog);
 
                 // If successfully delivered or skipped because not relevant, complete the message. 
-                if (processResultStatus == TracingConstants.Status.Succeeded || processResultStatus == TracingConstants.Status.Skipped)
+                if (processResultStatus == LoggingConstants.Status.Succeeded || processResultStatus == LoggingConstants.Status.Skipped)
                 {
                     settlementAction = ServiceBusConstants.SettlementActions.Complete;
                 }
                 // If failed and doNotRetry (e.g. a poisoned or invalid message), then deadletter the message. 
-                else if (processResultStatus == TracingConstants.Status.Failed && processResult.doNotRetry)
+                else if (processResultStatus == LoggingConstants.Status.Failed && processResult.doNotRetry)
                 {
                     settlementAction = ServiceBusConstants.SettlementActions.DeadLetter;
                 }
@@ -125,17 +138,18 @@ namespace Integration.Observability.PubSub.FnApp
             catch (Exception ex)
             {
                 // Log exception and then throw as is. 
-                var failedStatus = isLastAttempt ? TracingConstants.Status.Failed : TracingConstants.Status.AttemptFailed;
+                var failedStatus = isLastAttempt ? LoggingConstants.Status.Failed : LoggingConstants.Status.AttemptFailed;
 
                 // Log SubscriberDeliveryFailedException 
-                log.LogStructuredError(ex, 
-                                       (int)TracingConstants.EventId.SubscriberDeliveryFailedException,        
-                                       TracingConstants.SpanId.SubscriberDelivery, 
-                                       failedStatus, 
-                                       TracingConstants.MessageType.UserUpdateEvent, 
-                                       eventBatchCorrelationId.ToString(), 
-                                       ex.Message, 
-                                       deliveryCount: deliveryCountToLog);
+                log.LogStructuredError(ex,
+                                       (int)LoggingConstants.EventId.SubscriberDeliveryFailedException,
+                                       LoggingConstants.SpanId.SubscriberDelivery,
+                                       failedStatus,
+                                       LoggingConstants.MessageType.UserUpdateEvent,
+                                       eventBatchCorrelationId.ToString(),
+                                       entityId.ToString(),
+                                       ex.Message,
+                                       deliveryCount: deliveryCountToLog) ;
 
                 throw ex;
             }
@@ -146,7 +160,7 @@ namespace Integration.Observability.PubSub.FnApp
         /// </summary>
         /// <param name="userEvent"></param>
         /// <returns>The status of the process</returns>
-        private static (TracingConstants.EventId eventId, TracingConstants.Status, string message, bool doNotRetry) DeliverToTargetSystem(UserEventDto userEvent)
+        private static (LoggingConstants.EventId eventId, LoggingConstants.Status, string message, bool doNotRetry) DeliverToTargetSystem(UserEventDto userEvent)
         {
 
             Random randomGenerator = new Random();
@@ -159,17 +173,17 @@ namespace Integration.Observability.PubSub.FnApp
             }
             else if (userEvent.PhoneNumber.EndsWith("09"))
             {
-                // No need to retry, e.g. a poison or invalid message. 
-                return (TracingConstants.EventId.SubscriberDeliveryFailedInvalidMessage, 
-                        TracingConstants.Status.Failed, 
+                // Simulate a poison or invalid message. No need to retry. 
+                return (LoggingConstants.EventId.SubscriberDeliveryFailedInvalidMessage, 
+                        LoggingConstants.Status.Failed, 
                         "Missing required fields",
                         doNotRetry: true);
             }
             else if (userEvent.PhoneNumber.EndsWith("08"))
             {
-                // The message is stale as described in: https://platform.deloitte.com.au/articles/enterprise-integration-patterns-on-azure-endpoints#stale-message
-                return (TracingConstants.EventId.SubscriberDeliverySkippedStaleMessage, 
-                        TracingConstants.Status.Skipped, 
+                // Simulate a stale message as described in: https://platform.deloitte.com.au/articles/enterprise-integration-patterns-on-azure-endpoints#stale-message
+                return (LoggingConstants.EventId.SubscriberDeliverySkippedStaleMessage, 
+                        LoggingConstants.Status.Skipped, 
                         "Stale message",
                         doNotRetry: true);
             }
@@ -177,33 +191,33 @@ namespace Integration.Observability.PubSub.FnApp
             {
                 if (randomNumber == 0)
                 {
-                    // A transient error is received. A dependency is not ready in the target system. 
-                    return (TracingConstants.EventId.SubscriberDeliveryFailedMissingDependency,
-                            TracingConstants.Status.Failed,
+                    // Simulate a transient error. A dependency is not ready in the target system. 
+                    return (LoggingConstants.EventId.SubscriberDeliveryFailedMissingDependency,
+                            LoggingConstants.Status.Failed,
                             "Dependency entity not available",
                             doNotRetry: false);
                 }
                 else
                 {
-                    // Delivery to target system was successful
-                    return (TracingConstants.EventId.SubscriberDeliverySucceeded,
-                            TracingConstants.Status.Succeeded,
+                    // Simluate successful delivery to target system.
+                    return (LoggingConstants.EventId.SubscriberDeliverySucceeded,
+                            LoggingConstants.Status.Succeeded,
                             null,
                             doNotRetry: true);
                 }
             }
             else if (userEvent.PhoneNumber.EndsWith("06"))
             {
-                // A transient error is received. The target system is unreachable. 
-                return (TracingConstants.EventId.SubscriberDeliveryUnreachableTarget,
-                        TracingConstants.Status.Failed,
+                // Simulate a transient error. The target system is unreachable. 
+                return (LoggingConstants.EventId.SubscriberDeliveryUnreachableTarget,
+                        LoggingConstants.Status.Failed,
                         "Unable to reach system X, error: 'inner exception'",
                         doNotRetry: false);
             }
             else
-            {   // Delivery to target system was successful
-                return (TracingConstants.EventId.SubscriberDeliverySucceeded,
-                        TracingConstants.Status.Succeeded,
+            {   // Simulate successful delivery to target system.
+                return (LoggingConstants.EventId.SubscriberDeliverySucceeded,
+                        LoggingConstants.Status.Succeeded,
                         null,
                         doNotRetry: true);
             }

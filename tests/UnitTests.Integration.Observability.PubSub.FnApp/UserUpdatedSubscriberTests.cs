@@ -24,14 +24,13 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
 
         public UserUpdatedSubscriberTests()
         {
-            // Load configuration options from the app settings of the test project. 
+            // Load configuration options from the appsettings.json file in the test project. 
             var configuration = new ConfigurationBuilder()
                .SetBasePath(Directory.GetCurrentDirectory())
                .AddJsonFile("appsettings.json", false)
                .Build();
 
             _options = Options.Create(configuration.GetSection("Values").Get<FunctionOptions>());
-
             _userUpdatedSubscriber = new UserUpdatedSubscriber(_options);
 
             // Send log messages to the output window during debug. 
@@ -40,21 +39,21 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
         }
            
         [Theory]
-        [InlineData("UserEvent01ToComplete.json", 1, ServiceBusConstants.SettlementActions.Complete, TracingConstants.Status.Succeeded, TracingConstants.EventId.SubscriberDeliverySucceeded)]
-        [InlineData("UserEvent01ToComplete.json", 2, ServiceBusConstants.SettlementActions.Complete, TracingConstants.Status.Succeeded, TracingConstants.EventId.SubscriberDeliverySucceeded)]
-        [InlineData("UserEvent06ToUnreachableTarget.json", 1, ServiceBusConstants.SettlementActions.None, TracingConstants.Status.AttemptFailed, TracingConstants.EventId.SubscriberDeliveryUnreachableTarget)]
-        [InlineData("UserEvent06ToUnreachableTarget.json", 2, ServiceBusConstants.SettlementActions.None, TracingConstants.Status.Failed, TracingConstants.EventId.SubscriberDeliveryUnreachableTarget)]
-        [InlineData("UserEvent08SkipStaleMessage.json", 1, ServiceBusConstants.SettlementActions.Complete, TracingConstants.Status.Skipped, TracingConstants.EventId.SubscriberDeliverySkippedStaleMessage)]
-        [InlineData("UserEvent08SkipStaleMessage.json", 2, ServiceBusConstants.SettlementActions.Complete, TracingConstants.Status.Skipped, TracingConstants.EventId.SubscriberDeliverySkippedStaleMessage)]
-        [InlineData("UserEvent09InvalidMessage.json", 1, ServiceBusConstants.SettlementActions.DeadLetter, TracingConstants.Status.Failed, TracingConstants.EventId.SubscriberDeliveryFailedInvalidMessage)]
-        [InlineData("UserEvent09InvalidMessage.json", 2, ServiceBusConstants.SettlementActions.DeadLetter, TracingConstants.Status.Failed, TracingConstants.EventId.SubscriberDeliveryFailedInvalidMessage)]
+        [InlineData("UserEvent01ToComplete.json", 1, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Succeeded, LoggingConstants.EventId.SubscriberDeliverySucceeded)]
+        [InlineData("UserEvent01ToComplete.json", 2, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Succeeded, LoggingConstants.EventId.SubscriberDeliverySucceeded)]
+        [InlineData("UserEvent06ToUnreachableTarget.json", 1, ServiceBusConstants.SettlementActions.None, LoggingConstants.Status.AttemptFailed, LoggingConstants.EventId.SubscriberDeliveryUnreachableTarget)]
+        [InlineData("UserEvent06ToUnreachableTarget.json", 2, ServiceBusConstants.SettlementActions.None, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryUnreachableTarget)]
+        [InlineData("UserEvent08SkipStaleMessage.json", 1, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Skipped, LoggingConstants.EventId.SubscriberDeliverySkippedStaleMessage)]
+        [InlineData("UserEvent08SkipStaleMessage.json", 2, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Skipped, LoggingConstants.EventId.SubscriberDeliverySkippedStaleMessage)]
+        [InlineData("UserEvent09InvalidMessage.json", 1, ServiceBusConstants.SettlementActions.DeadLetter, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryFailedInvalidMessage)]
+        [InlineData("UserEvent09InvalidMessage.json", 2, ServiceBusConstants.SettlementActions.DeadLetter, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryFailedInvalidMessage)]
 
         public void When_ProcessUserEvent_ReturnExpectedResult(
             string payloadFileName, 
             int deliveryCount, 
             ServiceBusConstants.SettlementActions settlementAction,
-            TracingConstants.Status status,
-            TracingConstants.EventId eventId)
+            LoggingConstants.Status status,
+            LoggingConstants.EventId eventId)
         {
             //Arrange
             var payload = TestDataHelper.GetTestDataStringFromFile("UserEvents", payloadFileName);
@@ -76,15 +75,15 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
                     "UserEvent07MissingDependency.json",
                     1, 
                     new List<ServiceBusConstants.SettlementActions> {ServiceBusConstants.SettlementActions.None, ServiceBusConstants.SettlementActions.Complete},
-                    new List<TracingConstants.Status> { TracingConstants.Status.Succeeded, TracingConstants.Status.AttemptFailed },
-                    new List<TracingConstants.EventId> { TracingConstants.EventId.SubscriberDeliverySucceeded, TracingConstants.EventId.SubscriberDeliveryFailedMissingDependency }
+                    new List<LoggingConstants.Status> { LoggingConstants.Status.Succeeded, LoggingConstants.Status.AttemptFailed },
+                    new List<LoggingConstants.EventId> { LoggingConstants.EventId.SubscriberDeliverySucceeded, LoggingConstants.EventId.SubscriberDeliveryFailedMissingDependency }
                 },
                 new object[] {
                     "UserEvent07MissingDependency.json",
                     2,
                     new List<ServiceBusConstants.SettlementActions> {ServiceBusConstants.SettlementActions.None, ServiceBusConstants.SettlementActions.Complete},
-                    new List<TracingConstants.Status> { TracingConstants.Status.Succeeded, TracingConstants.Status.Failed },
-                    new List<TracingConstants.EventId> { TracingConstants.EventId.SubscriberDeliverySucceeded, TracingConstants.EventId.SubscriberDeliveryFailedMissingDependency }
+                    new List<LoggingConstants.Status> { LoggingConstants.Status.Succeeded, LoggingConstants.Status.Failed },
+                    new List<LoggingConstants.EventId> { LoggingConstants.EventId.SubscriberDeliverySucceeded, LoggingConstants.EventId.SubscriberDeliveryFailedMissingDependency }
                 },
             };
 
@@ -94,8 +93,8 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
             string payloadFileName,
             int deliveryCount,
             List<ServiceBusConstants.SettlementActions> expectedSettlementActions,
-            List<TracingConstants.Status> expectedStatuses,
-            List<TracingConstants.EventId> expectedEventIds)
+            List<LoggingConstants.Status> expectedStatuses,
+            List<LoggingConstants.EventId> expectedEventIds)
         {
             //Arrange
             var payload = TestDataHelper.GetTestDataStringFromFile("UserEvents", payloadFileName);
@@ -112,7 +111,6 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
 
         [Theory]
         [InlineData("UserEvent99Exception.json", 1)]
-
         public void When_ProcessUserEvent_ExpectException(
             string payloadFileName,
             int deliveryCount)
