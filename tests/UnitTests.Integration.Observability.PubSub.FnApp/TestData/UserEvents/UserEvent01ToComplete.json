@@ -1,0 +1,11 @@
+﻿
+  {
+    "id": 1,
+    "userName": "janey",
+    "email": "janey@demo.com.au",
+    "role": "Super Manager",
+    "givenName": "Jane",
+    "familyName": "Y",
+    "phoneNumber": "00 000 000 001",
+    "timestamp": "2021-01-16T17:31:00Z"
+  }
