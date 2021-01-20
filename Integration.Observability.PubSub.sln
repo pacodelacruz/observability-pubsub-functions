@@ -7,13 +7,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Integration.Observability.P
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Integration.Observability", "src\Integration.Observability\Integration.Observability.csproj", "{49BE6AEB-A1E4-42F9-8AB5-7E0F59ED4E43}"
 EndProject
-Project("{151D2E53-A2C4-4D7D-83FE-D05416EBD58E}") = "Integration.Observability.Deployment", "infra\Integration.Observbility.Deployment\Integration.Observability.Deployment.deployproj", "{EC22188F-E5D2-4D50-A1A3-DB75A5D23CFC}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{781646A4-F124-4E65-82E9-081BB484BEB9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{81DDB16A-B8E1-449F-A663-DE24019FB58C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "infra", "infra", "{0513D877-D573-49F6-8CF4-B1BF12D96AEF}"
+	ProjectSection(SolutionItems) = preProject
+		infra\azuredeploy.jsonc = infra\azuredeploy.jsonc
+		infra\azuredeploy.parameters.jsonc = infra\azuredeploy.parameters.jsonc
+		infra\README.md = infra\README.md
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "doc", "doc", "{5BA4380B-942C-4E11-9F7E-425BB8337312}"
 	ProjectSection(SolutionItems) = preProject
@@ -36,10 +39,6 @@ Global
 		{49BE6AEB-A1E4-42F9-8AB5-7E0F59ED4E43}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49BE6AEB-A1E4-42F9-8AB5-7E0F59ED4E43}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49BE6AEB-A1E4-42F9-8AB5-7E0F59ED4E43}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EC22188F-E5D2-4D50-A1A3-DB75A5D23CFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EC22188F-E5D2-4D50-A1A3-DB75A5D23CFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EC22188F-E5D2-4D50-A1A3-DB75A5D23CFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EC22188F-E5D2-4D50-A1A3-DB75A5D23CFC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CCF315A7-9F68-474D-8D01-8CE36A16918C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CCF315A7-9F68-474D-8D01-8CE36A16918C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CCF315A7-9F68-474D-8D01-8CE36A16918C}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -51,7 +50,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{B0FD1A6E-3E48-454F-A55A-9DE5934EA293} = {781646A4-F124-4E65-82E9-081BB484BEB9}
 		{49BE6AEB-A1E4-42F9-8AB5-7E0F59ED4E43} = {781646A4-F124-4E65-82E9-081BB484BEB9}
-		{EC22188F-E5D2-4D50-A1A3-DB75A5D23CFC} = {0513D877-D573-49F6-8CF4-B1BF12D96AEF}
 		{CCF315A7-9F68-474D-8D01-8CE36A16918C} = {81DDB16A-B8E1-449F-A663-DE24019FB58C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
