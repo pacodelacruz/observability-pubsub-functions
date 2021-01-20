@@ -1,3 +1,4 @@
+using Azure.Storage.Blobs;
 using Integration.Observability.Constants;
 using Integration.Observability.Extensions;
 using Integration.Observability.PubSub.FnApp.Models;
@@ -44,6 +45,9 @@ namespace Integration.Observability.PubSub.FnApp
             try
             {
                 string eventsAsJson = await new StreamReader(req.Body).ReadToEndAsync();
+                
+                //Archive the request body as an Azure Storage blob
+                ArchiveRequestBody(eventsAsJson, ctx.InvocationId.ToString(), _options.Value.AzureWebJobsStorage, _options.Value.StorageArchiveBlobContainer);
 
                 // Do most of the processing in a separate method for testability. 
                 var processResult = ProcessUserEventPublishing(eventsAsJson, ctx.InvocationId.ToString(), log);
@@ -51,6 +55,7 @@ namespace Integration.Observability.PubSub.FnApp
                 // For each debatched message
                 foreach (var message in processResult.messages)
                 {
+                    message.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), out var batchId);
                     message.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), out var entityId);
 
                     // Add the message to the queue Collector for delivery using the Azure Functions bindings
@@ -62,8 +67,9 @@ namespace Integration.Observability.PubSub.FnApp
                                       LoggingConstants.SpanId.PublisherDelivery,
                                       LoggingConstants.Status.Succeeded,
                                       LoggingConstants.MessageType.UserUpdateEvent,
-                                      processResult.userEventsMessage.Id,
-                                      entityId.ToString());
+                                      batchId: batchId.ToString(),
+                                      correlationId: message.CorrelationId,
+                                      entityId: entityId.ToString());                                      
                 }
 
                 return processResult.httpResponse;
@@ -76,8 +82,9 @@ namespace Integration.Observability.PubSub.FnApp
                                            (int)LoggingConstants.EventId.PublisherInternalServerError, 
                                            LoggingConstants.SpanId.Publisher, 
                                            LoggingConstants.Status.Failed, 
-                                           LoggingConstants.MessageType.UserUpdateEvent, 
-                                           "Unavailable", 
+                                           LoggingConstants.MessageType.UserUpdateEvent,
+                                           batchId: "Unavailable",
+                                           correlationId: null,
                                            message: ex.Message);
 
                     return new ObjectResult(new ApiResponse(StatusCodes.Status500InternalServerError, ctx.InvocationId.ToString(), "Internal Server Error")) {StatusCode = StatusCodes.Status500InternalServerError };
@@ -97,6 +104,9 @@ namespace Integration.Observability.PubSub.FnApp
             ProcessUserEventPublishing(string eventsAsJson, string invocationId, ILogger log)
         {
             var messages = new List<Message>();
+            string batchId;
+            string correlationId;
+            string messageId;
 
             // Validate the payload
             if (!TryDeserialiseUserEvents(eventsAsJson, out var userEventsMessage))
@@ -108,11 +118,20 @@ namespace Integration.Observability.PubSub.FnApp
                                   LoggingConstants.SpanId.PublisherBatchReceipt,
                                   LoggingConstants.Status.Failed,
                                   LoggingConstants.MessageType.UserUpdateEvent,
-                                  "Unavailable", "Invalid request body");
+                                  batchId: "Unavailable",
+                                  correlationId: null,
+                                  message: "Invalid request body");
 
                 // Return BadRequest
-                return (new BadRequestObjectResult(new ApiResponse(StatusCodes.Status400BadRequest, invocationId, "Invalid request body")), null, null);
+                return (
+                    new BadRequestObjectResult(
+                        new ApiResponse(StatusCodes.Status400BadRequest, invocationId, "Invalid request body")), 
+                    null,
+                    null);
             }
+
+            // batchId is defined with the source's CloudEventId and the Azure Function invocationId
+            batchId = $"{userEventsMessage.Id}-{invocationId}";
 
             var userEvents = (List<UserEventDto>)userEventsMessage.Data;
 
@@ -122,32 +141,41 @@ namespace Integration.Observability.PubSub.FnApp
                               LoggingConstants.SpanId.PublisherBatchReceipt,
                               LoggingConstants.Status.Succeeded,
                               LoggingConstants.MessageType.UserUpdateEvent,
-                              userEventsMessage.Id,
+                              batchId: batchId,
+                              correlationId: null,
                               recordCount: userEvents.Count);
 
             // Debatch the message into multiple events and prepare them to be sent to Service Bus.
             foreach (var userEvent in userEvents)
             {
+
+                // correlationId is defined with the batchId and eventId
+                correlationId = $"{batchId}.{userEvent.Id}";
+
+                // messageId is defined with the source's CloudEventId and eventId 
+                messageId = $"{userEventsMessage.Id}.{userEvent.Id}";
+
                 // Log PublisherReceiptSucceeded
                 log.LogStructured(LogLevel.Information,
                                   (int)LoggingConstants.EventId.PublisherReceiptSucceeded,
                                   LoggingConstants.SpanId.PublisherReceipt,
                                   LoggingConstants.Status.Succeeded,
                                   LoggingConstants.MessageType.UserUpdateEvent,
-                                  userEventsMessage.Id,
-                                  userEvent.Id.ToString());
+                                  batchId: batchId,
+                                  correlationId: correlationId,
+                                  entityId: userEvent.Id.ToString());
 
                 // Create Service Bus message
                 var messageBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(userEvent));
 
                 var userEventMessage = new Message(messageBody)
                 {
-                    MessageId = $"{userEventsMessage.Id}.{userEvent.Id}"
+                    MessageId = messageId,
+                    CorrelationId = correlationId
                 };
 
                 // Add user properties to the Service Bus message
-                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.TraceId.ToString(), invocationId);
-                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), userEventsMessage.Id);
+                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), batchId);
                 userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), userEvent.Id.ToString());
                 userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Source.ToString(), userEventsMessage.Source);
                 userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Timestamp.ToString(), userEvent.Timestamp.ToString("o"));
@@ -156,7 +184,11 @@ namespace Integration.Observability.PubSub.FnApp
                 messages.Add(userEventMessage);
             }
 
-            return (new ObjectResult(new ApiResponse(StatusCodes.Status202Accepted, invocationId, "Accepted")) { StatusCode = StatusCodes.Status202Accepted }, messages, userEventsMessage);
+            return (
+                new ObjectResult(new ApiResponse(StatusCodes.Status202Accepted, invocationId, "Accepted")) 
+                    { StatusCode = StatusCodes.Status202Accepted }, 
+                messages, 
+                userEventsMessage);
         }
 
         /// <summary>
@@ -189,6 +221,25 @@ namespace Integration.Observability.PubSub.FnApp
                 userEventsMessage = null;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Archives a message as an Azure Storage blob
+        /// </summary>
+        /// <param name="body"></param>
+        /// <param name="blobName"></param>
+        /// <param name="connectionString"></param>
+        /// <param name="containerName"></param>
+        private void ArchiveRequestBody(string body, string blobName, string connectionString, string containerName)
+        {
+            BlobContainerClient container = new BlobContainerClient(connectionString, containerName);
+            container.CreateIfNotExists();
+            BlobClient blob = container.GetBlobClient(blobName);
+            var content = Encoding.UTF8.GetBytes(body);
+            using (var memoryStream = new MemoryStream(content))
+            {
+                blob.Upload(memoryStream);
+            }                
         }
     }
 }

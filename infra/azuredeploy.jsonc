@@ -31,7 +31,8 @@
     "repoURL": "https://github.com/pacodelacruz/serverless-request-bin-durable-functions.git",
     "branch": "master",
     "storageAccountSuffix": "[replace(if(greaterOrEquals(length(parameters('appName')), 20), substring(parameters('appName'), 0, 20), substring(parameters('appName'), 0, length(parameters('appName')))), '-', '')]",
-    "storageAccountName": "[concat('st', variables('storageAccountSuffix'), substring(uniquestring(resourceGroup().id), 0, 2))]",
+    "storageAccountName": "[concat('st', variables('storageAccountSuffix'), substring(uniquestring(resourceGroup().id), 0, 2))]",    
+    "storageBlobContainerArchiveName": "archive",
     "storageAccountid": "[concat(resourceGroup().id,'/providers/','Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
   },
   "resources": [
@@ -49,7 +50,61 @@
           "accessTier": "Hot",
           "minimumTlsVersion": "TLS1_2",
           "supportsHttpsTrafficOnly": true   
-      }
+      },
+      "resources": [
+        {
+            "type": "blobServices/containers",
+            "apiVersion": "2019-06-01",
+            "name": "[concat('default/', variables('storageBlobContainerArchiveName'))]",
+            "dependsOn": [
+                "[variables('storageAccountName')]"
+            ],
+            "properties": {
+                "publicAccess": "None"
+            }
+        },
+        {
+            "type": "managementPolicies",
+            "apiVersion": "2019-06-01",
+            "name": "default",
+            "dependsOn": [
+                "[variables('storageAccountName')]"
+            ],
+          "properties": {
+            "policy": {
+              "rules": [
+                {
+                  "enabled": true,
+                  "name": "delete-old-blobs",
+                  "type": "Lifecycle",
+                  "definition": {
+                    "actions": {
+                      "baseBlob": {
+                        "delete": {
+                          "daysAfterModificationGreaterThan": 30
+                        }
+                      },
+                      "snapshot": {
+                        "delete": {
+                          "daysAfterCreationGreaterThan": 30
+                        }
+                      }
+                    },
+                    "filters": {
+                      "prefixMatch": [
+                        "[concat(variables('storageBlobContainerArchiveName'), '/')]"
+                      ],
+                      "blobTypes": [
+                        "blockBlob"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "type": "Microsoft.Web/serverfarms",
@@ -170,6 +225,10 @@
             {
               "name": "ServiceBusUserUpdateQueueMaxDeliveryCount",
               "value": "[parameters('queueMaxDeliveryCount')]"
+            },
+            {
+              "name": "StorageArchiveBlobContainer",
+              "value": "[variables('storageBlobContainerArchiveName')]"
             }
           ]
         }

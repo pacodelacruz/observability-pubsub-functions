@@ -22,23 +22,24 @@ namespace Integration.Observability.PubSub.FnApp
             _options = options;
         }
 
-    /// <summary>
-    /// Receives a Service Bus message and process it. 
-    /// </summary>
-    /// <param name="userEventMessage"></param>
-    /// <param name="lockToken"></param>
-    /// <param name="messageReceiver"></param>
-    /// <param name="deliveryCount"></param>
-    /// <param name="log"></param>
-    [FunctionName(nameof(UserUpdatedSubscriber))]
+        /// <summary>
+        /// Receives a Service Bus message and process it. 
+        /// </summary>
+        /// <param name="userEventMessage"></param>
+        /// <param name="lockToken"></param>
+        /// <param name="messageReceiver"></param>
+        /// <param name="deliveryCount"></param>
+        /// <param name="log"></param>
+        [FunctionName(nameof(UserUpdatedSubscriber))]
         public async void Run(
-            [ServiceBusTrigger("%ServiceBusUserUpdateQueueName%", Connection = "ServiceBusConnectionString")] 
-            Message userEventMessage, 
-            string lockToken,
-            MessageReceiver messageReceiver,
-            int deliveryCount,
-            ILogger log)
+                [ServiceBusTrigger("%ServiceBusUserUpdateQueueName%", Connection = "ServiceBusConnectionString")]
+            Message userEventMessage,
+                string lockToken,
+                MessageReceiver messageReceiver,
+                int deliveryCount,
+                ILogger log)
         {
+
             // Do most of the processing in a separate method for testability. 
             var processResult = ProcessUserEventSubscription(userEventMessage, deliveryCount, log);
 
@@ -80,7 +81,7 @@ namespace Integration.Observability.PubSub.FnApp
             string deliveryCountToLog = $"{deliveryCount}/{_options.Value.ServiceBusUserUpdateQueueMaxDeliveryCount}";
 
             // Get message properties, read, and deserialise body. 
-            userEventMessage.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), out var eventBatchCorrelationId);
+            userEventMessage.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), out var batchId);
             userEventMessage.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), out var entityId);
             var messageBody = Encoding.UTF8.GetString(userEventMessage.Body);
             var userEvent = JsonSerializer.Deserialize<UserEventDto>(messageBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -91,8 +92,9 @@ namespace Integration.Observability.PubSub.FnApp
                               LoggingConstants.SpanId.SubscriberReceipt,
                               LoggingConstants.Status.Succeeded,
                               LoggingConstants.MessageType.UserUpdateEvent,
-                              eventBatchCorrelationId.ToString(),
-                              entityId.ToString(),
+                              batchId: batchId.ToString(),
+                              correlationId: userEventMessage.CorrelationId,
+                              entityId: entityId.ToString(),
                               deliveryCount: deliveryCountToLog);
 
             // Check if the current delivery count equals the max delivery count for the queue. 
@@ -102,13 +104,13 @@ namespace Integration.Observability.PubSub.FnApp
             try
             {
                 // Simulate delivery to target system
-                (LoggingConstants.EventId eventId, LoggingConstants.Status status, string message, bool doNotRetry) processResult = 
+                (LoggingConstants.EventId eventId, LoggingConstants.Status status, string message, bool doNotRetry) processResult =
                     DeliverToTargetSystem(userEvent);
 
                 processResultStatus = processResult.status;
 
                 // If it is not the last delivery attempt, the process did not return doNotRetry and the process failed, then change from Failed to AttemptFailed
-                if (!isLastAttempt && !processResult.doNotRetry && processResult.status == LoggingConstants.Status.Failed )
+                if (!isLastAttempt && !processResult.doNotRetry && processResult.status == LoggingConstants.Status.Failed)
                     processResultStatus = LoggingConstants.Status.AttemptFailed;
 
                 // Log process result
@@ -117,8 +119,9 @@ namespace Integration.Observability.PubSub.FnApp
                                   LoggingConstants.SpanId.SubscriberDelivery,
                                   processResultStatus,
                                   LoggingConstants.MessageType.UserUpdateEvent,
-                                  eventBatchCorrelationId.ToString(),
-                                  entityId.ToString(),
+                                  batchId: batchId.ToString(),
+                                  correlationId: userEventMessage.CorrelationId,
+                                  entityId: entityId.ToString(),
                                   message: processResult.message,
                                   deliveryCount: deliveryCountToLog);
 
@@ -146,12 +149,13 @@ namespace Integration.Observability.PubSub.FnApp
                                        LoggingConstants.SpanId.SubscriberDelivery,
                                        failedStatus,
                                        LoggingConstants.MessageType.UserUpdateEvent,
-                                       eventBatchCorrelationId.ToString(),
-                                       entityId.ToString(),
-                                       ex.Message,
-                                       deliveryCount: deliveryCountToLog) ;
+                                       batchId: batchId?.ToString(),
+                                       correlationId: userEventMessage?.CorrelationId,
+                                       entityId: entityId?.ToString(),
+                                       message: ex.Message,
+                                       deliveryCount: deliveryCountToLog);
 
-                throw ex;
+                return (settlementAction, LoggingConstants.EventId.SubscriberDeliveryFailedException, failedStatus, ex.Message);
             }
         }
 
@@ -168,22 +172,23 @@ namespace Integration.Observability.PubSub.FnApp
 
             if (userEvent.PhoneNumber.EndsWith("99"))
             {
-                // Simulate an unhandled exception.
+                //Simulate an unhandled exception.
                 throw new ApplicationException("Catastrophic failure");
             }
-            else if (userEvent.PhoneNumber.EndsWith("09"))
+            else
+            if (userEvent.PhoneNumber.EndsWith("09"))
             {
                 // Simulate a poison or invalid message. No need to retry. 
-                return (LoggingConstants.EventId.SubscriberDeliveryFailedInvalidMessage, 
-                        LoggingConstants.Status.Failed, 
+                return (LoggingConstants.EventId.SubscriberDeliveryFailedInvalidMessage,
+                        LoggingConstants.Status.Failed,
                         "Missing required fields",
                         doNotRetry: true);
             }
             else if (userEvent.PhoneNumber.EndsWith("08"))
             {
                 // Simulate a stale message as described in: https://platform.deloitte.com.au/articles/enterprise-integration-patterns-on-azure-endpoints#stale-message
-                return (LoggingConstants.EventId.SubscriberDeliverySkippedStaleMessage, 
-                        LoggingConstants.Status.Skipped, 
+                return (LoggingConstants.EventId.SubscriberDeliverySkippedStaleMessage,
+                        LoggingConstants.Status.Skipped,
                         "Stale message",
                         doNotRetry: true);
             }
