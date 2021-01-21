@@ -1,0 +1,17 @@
+﻿// Traces with failed status
+traces 
+| sort by timestamp desc
+| where customDimensions.prop__Status == "Failed"
+| project 
+          timestamp
+        , EntityType = customDimensions.prop__EntityType
+        , EntityId  = customDimensions.prop__EntityId
+        , EventName = customDimensions.EventName
+        , SpanId = customDimensions.prop__SpanId
+        , DeliveryCount = customDimensions.prop__DeliveryCount
+        , Component = operation_Name
+        , CorrelationId = customDimensions.prop__CorrelationId
+// Optional filters, uncomment if/when required
+//| where CorrelationId contains "" // Filters based on the correlationId, which includes the customer provided batchId and the Azure Function involcationId 
+//| where EntityType == "" // Filters based on the EntityType 
+//| where EntityId == "" // Filters based on the EntityId

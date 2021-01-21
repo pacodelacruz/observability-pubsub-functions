@@ -1,0 +1,81 @@
+﻿// Correlated traces
+// Joins the traces of the key spans in the lifespan of a message. 
+// For those messages that are retried in the Susbcriber span, it shows the values of the last recorded attempt. 
+traces 
+| sort by timestamp desc 
+| where customDimensions.prop__SpanId == 'PublisherReceipt'
+| project EntityType = tostring(customDimensions.prop__EntityType)
+          , EntityId = tostring(customDimensions.prop__EntityId)
+          , CorrelationId = tostring(customDimensions.prop__CorrelationId)
+          , PublisherReceiptLogLevel = customDimensions.LogLevel 
+          , PublisherReceiptEventName = customDimensions.EventName
+          , PublisherReceiptTimestamp = timestamp 
+          , PublisherComponent = operation_Name
+          , PublisherReceiptStatus = tostring(customDimensions.prop__Status)
+| join kind = leftouter (     
+    traces 
+    | sort by timestamp desc
+    | where customDimensions.prop__SpanId == 'PublisherDelivery'
+    | project PublisherDeliveryLogLevel = customDimensions.LogLevel 
+            , PublisherDeliveryEventName = customDimensions.EventName
+            , PublisherDeliveryStatus = tostring(customDimensions.prop__Status)
+            , PublisherDeliveryTimestamp = timestamp 
+            , CorrelationId = tostring(customDimensions.prop__CorrelationId)
+    ) on $left.CorrelationId == $right.CorrelationId
+| join kind = leftouter (     
+    traces 
+    | sort by timestamp desc
+    | where customDimensions.prop__SpanId == 'SubscriberReceipt'
+    | project SubscriberReceiptLogLevel = customDimensions.LogLevel 
+            , SubscriberReceiptEventName = customDimensions.EventName
+            , SubscriberComponent = operation_Name
+            , SubscriberReceiptStatus = tostring(customDimensions.prop__Status)
+            , SubscriberReceiptDeliveryCount = tostring(customDimensions.prop__DeliveryCount)
+            , SubscriberReceiptTimestamp = timestamp 
+            , CorrelationId = tostring(customDimensions.prop__CorrelationId)
+        | join kind = inner ( // To get only the last attempt of the span
+            traces
+            | where customDimensions.prop__SpanId == 'SubscriberReceipt'
+            | summarize   SubscriberReceiptDeliveryCount = max(tostring(customDimensions.prop__DeliveryCount))
+                        by CorrelationId = tostring(customDimensions.prop__CorrelationId)
+                        , operation_Name // in case of multiple subscribers
+        ) on $left.CorrelationId == $right.CorrelationId, $left.SubscriberReceiptDeliveryCount == $right.SubscriberReceiptDeliveryCount
+    ) on $left.CorrelationId == $right.CorrelationId
+| join kind = leftouter (     
+    traces 
+    | sort by timestamp desc
+    | where customDimensions.prop__SpanId == 'SubscriberDelivery'
+    | project SubscriberDeliveryLogLevel = customDimensions.LogLevel 
+            , SubscriberDeliveryEventName = customDimensions.EventName
+            , SubscriberDeliveryStatus = customDimensions.prop__Status
+            , SubscriberDeliveryDeliveryCount = tostring(customDimensions.prop__DeliveryCount)
+            , SubscriberDeliveryTimestamp = timestamp 
+            , CorrelationId = tostring(customDimensions.prop__CorrelationId)
+        | join kind = inner (  // To get only the last attempt of the span
+            traces
+            | where customDimensions.prop__SpanId == 'SubscriberDelivery'
+            | summarize   SubscriberDeliveryDeliveryCount = max(tostring(customDimensions.prop__DeliveryCount))
+                        by CorrelationId = tostring(customDimensions.prop__CorrelationId)
+                        , operation_Name // in case of multiple subscribers
+        ) on $left.CorrelationId == $right.CorrelationId, $left.SubscriberDeliveryDeliveryCount == $right.SubscriberDeliveryDeliveryCount
+    ) on $left.CorrelationId == $right.CorrelationId    
+| project 
+          PublisherReceiptTimestamp
+        , CorrelationId 
+        , EntityType
+        , EntityId 
+        , PublisherReceiptEventName
+        , PublisherDeliveryEventName
+        , SubscriberReceiptEventName
+        , SubscriberDeliveryEventName
+        , PublisherReceiptStatus 
+        , PublisherDeliveryStatus 
+        , SubscriberReceiptStatus
+        , SubscriberDeliveryStatus
+        , SubscriberReceiptDeliveryCount
+        , SubscriberDeliveryDeliveryCount
+| sort by PublisherReceiptTimestamp desc
+// Optional filters, uncomment if/when required
+//| where CorrelationId contains "" // Filters based on the correlationId, which includes the customer provided batchId and the Azure Function involcationId 
+//| where EntityType == "" // Filters based on the EntityType 
+//| where EntityId == "" // Filters based on the EntityId

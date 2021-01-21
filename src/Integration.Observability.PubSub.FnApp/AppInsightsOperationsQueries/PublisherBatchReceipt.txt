@@ -1,0 +1,10 @@
+﻿//All trace events related to the 'PublisherBatchReceipt' span
+traces 
+| sort by timestamp desc 
+| where customDimensions.prop__SpanId == 'PublisherBatchReceipt'
+| project timestamp
+            , Level = customDimensions.LogLevel 
+            , EntityType = customDimensions.prop__EntityType
+            , EntityId = customDimensions.prop__EntityId
+            , Status = customDimensions.prop__Status
+            , RecordCount = customDimensions.prop__RecordCount

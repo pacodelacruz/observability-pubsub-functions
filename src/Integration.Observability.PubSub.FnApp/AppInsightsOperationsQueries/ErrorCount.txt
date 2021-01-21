@@ -1,0 +1,7 @@
+﻿traces 
+| sort by timestamp desc 
+| where customDimensions.prop__Status == "Failed"
+| where customDimensions.EventName != ""
+| project EventName = tostring(customDimensions.EventName)
+        , EntityType = tostring(customDimensions.prop__EntityType)
+| summarize Count = count(EventName) by EntityType, EventName
