@@ -14,17 +14,17 @@ namespace Integration.Observability.Extensions
         private const string _template = "{Message}, {EntityType}, {EntityId}, {SpanId}, {Status}, {BatchId}, {CorrelationId}, {DeliveryCount}, {RecordCount}";
 
         public static void LogStructured(this ILogger logger,
-            LogLevel level, int eventId, LoggingConstants.SpanId spanId, LoggingConstants.Status status,
+            LogLevel level, LoggingConstants.EventId eventId, LoggingConstants.SpanId spanId, LoggingConstants.Status status,
             LoggingConstants.MessageType entityType, string batchId, string correlationId, string entityId = null, string message = null, string deliveryCount = null, int? recordCount = null)
         {
-            logger.Log(level, new EventId(eventId), _template, message, entityType, entityId, spanId, status, correlationId, batchId, deliveryCount, recordCount);
+            logger.Log(level, new EventId((int)eventId, eventId.ToString()), _template, message, entityType, entityId, spanId, status, batchId, correlationId, deliveryCount, recordCount);
         }
 
         public static void LogStructuredError(this ILogger logger,
-            Exception ex, int eventId, LoggingConstants.SpanId spanId, LoggingConstants.Status status,
+            Exception ex, LoggingConstants.EventId eventId, LoggingConstants.SpanId spanId, LoggingConstants.Status status,
             LoggingConstants.MessageType entityType, string batchId, string correlationId, string entityId = null, string message = null, string deliveryCount = null, int? recordCount = null)
         {
-            logger.Log(LogLevel.Error, new EventId(eventId), ex, _template, message, entityType, entityId, spanId, status, correlationId, batchId, deliveryCount, recordCount);
+            logger.Log(LogLevel.Error, new EventId((int)eventId, eventId.ToString()), ex, _template, message, entityType, entityId, spanId, status, batchId, correlationId, deliveryCount, recordCount);
         }
     }
 }

@@ -142,12 +142,12 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
 
             var cloudEventId = Guid.NewGuid().ToString();
             var invocationId = Guid.NewGuid().ToString();
-            var batchId = $"{cloudEventId}-{invocationId}";
+            var batchId = $"{cloudEventId}|{invocationId}";
 
             var userEventMessage = new Message(messageBody)
             {
-                MessageId = $"{cloudEventId}-{userEvent.Id}",
-                CorrelationId = $"{batchId}-{userEvent.Id}",
+                MessageId = $"{cloudEventId}|{userEvent.Id}",
+                CorrelationId = $"{batchId}|{userEvent.Id}",
             };
 
             // Add user properties to the Service Bus message

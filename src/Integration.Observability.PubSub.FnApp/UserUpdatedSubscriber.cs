@@ -88,7 +88,7 @@ namespace Integration.Observability.PubSub.FnApp
 
             // Log SubscriberReceiptSucceeded
             log.LogStructured(LogLevel.Information,
-                              (int)LoggingConstants.EventId.SubscriberReceiptSucceeded,
+                              LoggingConstants.EventId.SubscriberReceiptSucceeded,
                               LoggingConstants.SpanId.SubscriberReceipt,
                               LoggingConstants.Status.Succeeded,
                               LoggingConstants.MessageType.UserUpdateEvent,
@@ -115,7 +115,7 @@ namespace Integration.Observability.PubSub.FnApp
 
                 // Log process result
                 log.LogStructured(LoggerHelper.CalculateLogLevel(processResult.status),
-                                  (int)processResult.eventId,
+                                  processResult.eventId,
                                   LoggingConstants.SpanId.SubscriberDelivery,
                                   processResultStatus,
                                   LoggingConstants.MessageType.UserUpdateEvent,
@@ -145,7 +145,7 @@ namespace Integration.Observability.PubSub.FnApp
 
                 // Log SubscriberDeliveryFailedException 
                 log.LogStructuredError(ex,
-                                       (int)LoggingConstants.EventId.SubscriberDeliveryFailedException,
+                                       LoggingConstants.EventId.SubscriberDeliveryFailedException,
                                        LoggingConstants.SpanId.SubscriberDelivery,
                                        failedStatus,
                                        LoggingConstants.MessageType.UserUpdateEvent,

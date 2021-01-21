@@ -52,24 +52,27 @@ namespace Integration.Observability.PubSub.FnApp
                 // Do most of the processing in a separate method for testability. 
                 var processResult = ProcessUserEventPublishing(eventsAsJson, ctx.InvocationId.ToString(), log);
 
-                // For each debatched message
-                foreach (var message in processResult.messages)
+                if (!(processResult.messages is null))
                 {
-                    message.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), out var batchId);
-                    message.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), out var entityId);
+                    // For each debatched message
+                    foreach (var message in processResult.messages)
+                    {
+                        message.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), out var batchId);
+                        message.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), out var entityId);
 
-                    // Add the message to the queue Collector for delivery using the Azure Functions bindings
-                    await queueCollector.AddAsync(message);
+                        // Add the message to the queue Collector for delivery using the Azure Functions bindings
+                        await queueCollector.AddAsync(message);
 
-                    // Log PublisherDeliverySucceeded
-                    log.LogStructured(LogLevel.Information,
-                                      (int)LoggingConstants.EventId.PublisherDeliverySucceeded,
-                                      LoggingConstants.SpanId.PublisherDelivery,
-                                      LoggingConstants.Status.Succeeded,
-                                      LoggingConstants.MessageType.UserUpdateEvent,
-                                      batchId: batchId.ToString(),
-                                      correlationId: message.CorrelationId,
-                                      entityId: entityId.ToString());                                      
+                        // Log PublisherDeliverySucceeded
+                        log.LogStructured(LogLevel.Information,
+                                          LoggingConstants.EventId.PublisherDeliverySucceeded,
+                                          LoggingConstants.SpanId.PublisherDelivery,
+                                          LoggingConstants.Status.Succeeded,
+                                          LoggingConstants.MessageType.UserUpdateEvent,
+                                          batchId: batchId.ToString(),
+                                          correlationId: message.CorrelationId,
+                                          entityId: entityId.ToString());
+                    }
                 }
 
                 return processResult.httpResponse;
@@ -79,7 +82,7 @@ namespace Integration.Observability.PubSub.FnApp
                 {
                     // Log PublisherInternalServerError and return HTTP 500 with the invocation Id for correlation with the logged error message. 
                     log.LogStructuredError(ex, 
-                                           (int)LoggingConstants.EventId.PublisherInternalServerError, 
+                                           LoggingConstants.EventId.PublisherInternalServerError, 
                                            LoggingConstants.SpanId.Publisher, 
                                            LoggingConstants.Status.Failed, 
                                            LoggingConstants.MessageType.UserUpdateEvent,
@@ -114,7 +117,7 @@ namespace Integration.Observability.PubSub.FnApp
                 // If paylod is not valid
                 // Log PublisherBatchReceiptFailedBadRequest error due to invalid request body and return HTTP 400 with the invocation Id for correlation with the logged error message.
                 log.LogStructured(LogLevel.Error,
-                                  (int)LoggingConstants.EventId.PublisherBatchReceiptFailedBadRequest,
+                                  LoggingConstants.EventId.PublisherBatchReceiptFailedBadRequest,
                                   LoggingConstants.SpanId.PublisherBatchReceipt,
                                   LoggingConstants.Status.Failed,
                                   LoggingConstants.MessageType.UserUpdateEvent,
@@ -131,17 +134,18 @@ namespace Integration.Observability.PubSub.FnApp
             }
 
             // batchId is defined with the source's CloudEventId and the Azure Function invocationId
-            batchId = $"{userEventsMessage.Id}-{invocationId}";
+            batchId = $"{userEventsMessage.Id}|{invocationId}";
 
             var userEvents = (List<UserEventDto>)userEventsMessage.Data;
 
             // Log PublisherBatchReceiptSucceeded
             log.LogStructured(LogLevel.Information,
-                              (int)LoggingConstants.EventId.PublisherBatchReceiptSucceeded,
+                              LoggingConstants.EventId.PublisherBatchReceiptSucceeded,
                               LoggingConstants.SpanId.PublisherBatchReceipt,
                               LoggingConstants.Status.Succeeded,
                               LoggingConstants.MessageType.UserUpdateEvent,
                               batchId: batchId,
+                              entityId: userEventsMessage.Id,
                               correlationId: null,
                               recordCount: userEvents.Count);
 
@@ -150,14 +154,14 @@ namespace Integration.Observability.PubSub.FnApp
             {
 
                 // correlationId is defined with the batchId and eventId
-                correlationId = $"{batchId}.{userEvent.Id}";
+                correlationId = $"{batchId}|{userEvent.Id}";
 
                 // messageId is defined with the source's CloudEventId and eventId 
-                messageId = $"{userEventsMessage.Id}.{userEvent.Id}";
+                messageId = $"{userEventsMessage.Id}|{userEvent.Id}";
 
                 // Log PublisherReceiptSucceeded
                 log.LogStructured(LogLevel.Information,
-                                  (int)LoggingConstants.EventId.PublisherReceiptSucceeded,
+                                  LoggingConstants.EventId.PublisherReceiptSucceeded,
                                   LoggingConstants.SpanId.PublisherReceipt,
                                   LoggingConstants.Status.Succeeded,
                                   LoggingConstants.MessageType.UserUpdateEvent,
