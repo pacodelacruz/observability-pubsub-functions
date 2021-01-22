@@ -41,7 +41,7 @@ namespace Integration.Observability.Constants
             SubscriberDeliverySucceeded = 11600,
             SubscriberDeliverySkippedStaleMessage = 11680,
             SubscriberDeliveryFailedMissingDependency = 11688,
-            SubscriberDeliveryUnreachableTarget = 11689,
+            SubscriberDeliveryFailedUnreachableTarget = 11689,
             SubscriberDeliveryFailedInvalidMessage = 11690,
             SubscriberDeliveryFailedException = 11699 
         }
@@ -64,6 +64,15 @@ namespace Integration.Observability.Constants
         public enum MessageType
         {
             UserUpdateEvent
+        }
+
+        /// <summary>
+        /// The interface businessId
+        /// </summary>
+        public enum InterfaceId
+        {
+            UserEventPub01,
+            UserEventSub01
         }
     }
 }

@@ -1,7 +1,11 @@
-﻿traces 
+﻿// Error Count grouped by InterfaceId and trace event type (EventName) 
+traces 
 | sort by timestamp desc 
 | where customDimensions.prop__Status == "Failed"
 | where customDimensions.EventName != ""
+| where tostring(customDimensions.prop__InterfaceId) != ""
 | project EventName = tostring(customDimensions.EventName)
-        , EntityType = tostring(customDimensions.prop__EntityType)
-| summarize Count = count(EventName) by EntityType, EventName
+        , InterfaceId = tostring(customDimensions.prop__InterfaceId)
+| summarize Count = count(EventName) 
+        by InterfaceId
+         , EventName

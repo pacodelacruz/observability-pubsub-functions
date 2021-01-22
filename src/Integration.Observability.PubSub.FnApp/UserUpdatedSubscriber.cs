@@ -91,6 +91,7 @@ namespace Integration.Observability.PubSub.FnApp
                               LoggingConstants.EventId.SubscriberReceiptSucceeded,
                               LoggingConstants.SpanId.SubscriberReceipt,
                               LoggingConstants.Status.Succeeded,
+                              LoggingConstants.InterfaceId.UserEventSub01, 
                               LoggingConstants.MessageType.UserUpdateEvent,
                               batchId: batchId.ToString(),
                               correlationId: userEventMessage.CorrelationId,
@@ -118,6 +119,7 @@ namespace Integration.Observability.PubSub.FnApp
                                   processResult.eventId,
                                   LoggingConstants.SpanId.SubscriberDelivery,
                                   processResultStatus,
+                                  LoggingConstants.InterfaceId.UserEventSub01, 
                                   LoggingConstants.MessageType.UserUpdateEvent,
                                   batchId: batchId.ToString(),
                                   correlationId: userEventMessage.CorrelationId,
@@ -148,6 +150,7 @@ namespace Integration.Observability.PubSub.FnApp
                                        LoggingConstants.EventId.SubscriberDeliveryFailedException,
                                        LoggingConstants.SpanId.SubscriberDelivery,
                                        failedStatus,
+                                       LoggingConstants.InterfaceId.UserEventSub01, 
                                        LoggingConstants.MessageType.UserUpdateEvent,
                                        batchId: batchId?.ToString(),
                                        correlationId: userEventMessage?.CorrelationId,
@@ -214,7 +217,7 @@ namespace Integration.Observability.PubSub.FnApp
             else if (userEvent.PhoneNumber.EndsWith("06"))
             {
                 // Simulate a transient error. The target system is unreachable. 
-                return (LoggingConstants.EventId.SubscriberDeliveryUnreachableTarget,
+                return (LoggingConstants.EventId.SubscriberDeliveryFailedUnreachableTarget,
                         LoggingConstants.Status.Failed,
                         "Unable to reach system X, error: 'inner exception'",
                         doNotRetry: false);

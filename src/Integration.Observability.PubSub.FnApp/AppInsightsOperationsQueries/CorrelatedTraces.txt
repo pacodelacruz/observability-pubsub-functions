@@ -4,7 +4,8 @@
 traces 
 | sort by timestamp desc 
 | where customDimensions.prop__SpanId == 'PublisherReceipt'
-| project EntityType = tostring(customDimensions.prop__EntityType)
+| project   EntityType = tostring(customDimensions.prop__EntityType)
+          , PublisherInterfaceId = tostring(customDimensions.prop__InterfaceId)
           , EntityId = tostring(customDimensions.prop__EntityId)
           , CorrelationId = tostring(customDimensions.prop__CorrelationId)
           , PublisherReceiptLogLevel = customDimensions.LogLevel 
@@ -27,6 +28,7 @@ traces
     | sort by timestamp desc
     | where customDimensions.prop__SpanId == 'SubscriberReceipt'
     | project SubscriberReceiptLogLevel = customDimensions.LogLevel 
+            , SubscriberInterfaceId = tostring(customDimensions.prop__InterfaceId)
             , SubscriberReceiptEventName = customDimensions.EventName
             , SubscriberComponent = operation_Name
             , SubscriberReceiptStatus = tostring(customDimensions.prop__Status)
@@ -62,6 +64,8 @@ traces
 | project 
           PublisherReceiptTimestamp
         , CorrelationId 
+        , PublisherInterfaceId
+        , SubscriberInterfaceId
         , EntityType
         , EntityId 
         , PublisherReceiptEventName
@@ -79,3 +83,5 @@ traces
 //| where CorrelationId contains "" // Filters based on the correlationId, which includes the customer provided batchId and the Azure Function involcationId 
 //| where EntityType == "" // Filters based on the EntityType 
 //| where EntityId == "" // Filters based on the EntityId
+//| where PublisherInterfaceId contains "" // Filters based on the PublisherInterfaceId
+//| where SubscriberInterfaceId contains "" // Filters based on the SubscriberInterfaceId

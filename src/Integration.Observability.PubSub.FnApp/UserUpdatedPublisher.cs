@@ -45,9 +45,9 @@ namespace Integration.Observability.PubSub.FnApp
             try
             {
                 string eventsAsJson = await new StreamReader(req.Body).ReadToEndAsync();
-                
+
                 //Archive the request body as an Azure Storage blob
-                ArchiveRequestBody(eventsAsJson, ctx.InvocationId.ToString(), _options.Value.AzureWebJobsStorage, _options.Value.StorageArchiveBlobContainer);
+                ArchiveRequestBody(eventsAsJson, $"{DateTime.Now:yyyy/MM/dd}/{ctx.InvocationId}.json", _options.Value.AzureWebJobsStorage, _options.Value.StorageArchiveBlobContainer);
 
                 // Do most of the processing in a separate method for testability. 
                 var processResult = ProcessUserEventPublishing(eventsAsJson, ctx.InvocationId.ToString(), log);
@@ -68,6 +68,7 @@ namespace Integration.Observability.PubSub.FnApp
                                           LoggingConstants.EventId.PublisherDeliverySucceeded,
                                           LoggingConstants.SpanId.PublisherDelivery,
                                           LoggingConstants.Status.Succeeded,
+                                          LoggingConstants.InterfaceId.UserEventPub01,
                                           LoggingConstants.MessageType.UserUpdateEvent,
                                           batchId: batchId.ToString(),
                                           correlationId: message.CorrelationId,
@@ -79,19 +80,19 @@ namespace Integration.Observability.PubSub.FnApp
             }
             catch (Exception ex)
             {
-                {
-                    // Log PublisherInternalServerError and return HTTP 500 with the invocation Id for correlation with the logged error message. 
-                    log.LogStructuredError(ex, 
-                                           LoggingConstants.EventId.PublisherInternalServerError, 
-                                           LoggingConstants.SpanId.Publisher, 
-                                           LoggingConstants.Status.Failed, 
-                                           LoggingConstants.MessageType.UserUpdateEvent,
-                                           batchId: "Unavailable",
-                                           correlationId: null,
-                                           message: ex.Message);
+                // Log PublisherInternalServerError and return HTTP 500 with the invocation Id for correlation with the logged error message. 
+                log.LogStructuredError(ex,
+                                       LoggingConstants.EventId.PublisherInternalServerError,
+                                       LoggingConstants.SpanId.Publisher,
+                                       LoggingConstants.Status.Failed,
+                                       LoggingConstants.InterfaceId.UserEventPub01,
+                                       LoggingConstants.MessageType.UserUpdateEvent,
+                                       batchId: "Unavailable",
+                                       correlationId: null,
+                                       message: ex.Message);
 
-                    return new ObjectResult(new ApiResponse(StatusCodes.Status500InternalServerError, ctx.InvocationId.ToString(), "Internal Server Error")) {StatusCode = StatusCodes.Status500InternalServerError };
-                }
+                return new ObjectResult(new ApiResponse(StatusCodes.Status500InternalServerError, ctx.InvocationId.ToString(), "Internal Server Error")) { StatusCode = StatusCodes.Status500InternalServerError };
+
             }
         }
 
@@ -120,6 +121,7 @@ namespace Integration.Observability.PubSub.FnApp
                                   LoggingConstants.EventId.PublisherBatchReceiptFailedBadRequest,
                                   LoggingConstants.SpanId.PublisherBatchReceipt,
                                   LoggingConstants.Status.Failed,
+                                  LoggingConstants.InterfaceId.UserEventPub01,
                                   LoggingConstants.MessageType.UserUpdateEvent,
                                   batchId: "Unavailable",
                                   correlationId: null,
@@ -128,7 +130,7 @@ namespace Integration.Observability.PubSub.FnApp
                 // Return BadRequest
                 return (
                     new BadRequestObjectResult(
-                        new ApiResponse(StatusCodes.Status400BadRequest, invocationId, "Invalid request body")), 
+                        new ApiResponse(StatusCodes.Status400BadRequest, invocationId, "Invalid request body")),
                     null,
                     null);
             }
@@ -143,6 +145,7 @@ namespace Integration.Observability.PubSub.FnApp
                               LoggingConstants.EventId.PublisherBatchReceiptSucceeded,
                               LoggingConstants.SpanId.PublisherBatchReceipt,
                               LoggingConstants.Status.Succeeded,
+                              LoggingConstants.InterfaceId.UserEventPub01,
                               LoggingConstants.MessageType.UserUpdateEvent,
                               batchId: batchId,
                               entityId: userEventsMessage.Id,
@@ -164,6 +167,7 @@ namespace Integration.Observability.PubSub.FnApp
                                   LoggingConstants.EventId.PublisherReceiptSucceeded,
                                   LoggingConstants.SpanId.PublisherReceipt,
                                   LoggingConstants.Status.Succeeded,
+                                  LoggingConstants.InterfaceId.UserEventPub01,
                                   LoggingConstants.MessageType.UserUpdateEvent,
                                   batchId: batchId,
                                   correlationId: correlationId,
@@ -189,9 +193,9 @@ namespace Integration.Observability.PubSub.FnApp
             }
 
             return (
-                new ObjectResult(new ApiResponse(StatusCodes.Status202Accepted, invocationId, "Accepted")) 
-                    { StatusCode = StatusCodes.Status202Accepted }, 
-                messages, 
+                new ObjectResult(new ApiResponse(StatusCodes.Status202Accepted, invocationId, "Accepted"))
+                { StatusCode = StatusCodes.Status202Accepted },
+                messages,
                 userEventsMessage);
         }
 
@@ -243,7 +247,7 @@ namespace Integration.Observability.PubSub.FnApp
             using (var memoryStream = new MemoryStream(content))
             {
                 blob.Upload(memoryStream);
-            }                
+            }
         }
     }
 }
