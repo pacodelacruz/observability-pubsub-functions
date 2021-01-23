@@ -23,7 +23,7 @@ namespace Integration.Observability.Helpers
                     return LogLevel.Warning;                    
                 case LoggingConstants.Status.Failed:
                     return LogLevel.Error;
-                case LoggingConstants.Status.Skipped:
+                case LoggingConstants.Status.Discarded:
                     return LogLevel.Warning;
                 default:
                     return LogLevel.Information;

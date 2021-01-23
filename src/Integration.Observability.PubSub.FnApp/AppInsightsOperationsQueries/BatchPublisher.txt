@@ -1,0 +1,34 @@
+﻿//All trace events related to the 'BatchPublisher' span
+traces 
+| sort by timestamp desc 
+| where customDimensions.prop__SpanCheckpointId == 'BatchPublisherStart'
+| project BatchPublisherStart = timestamp
+        , BatchPublisherStartLevel = customDimensions.LogLevel 
+        , InterfaceId = customDimensions.prop__InterfaceId
+        , EntityType = customDimensions.prop__EntityType
+        , BatchId = tostring(customDimensions.prop__BatchId)
+        , BatchPublisherStartStatus = customDimensions.prop__Status
+| join kind = leftouter (     
+    traces       
+    | where customDimensions.prop__SpanCheckpointId == 'BatchPublisherEnd'   
+    | project BatchPublisherEnd = timestamp   
+            , BatchPublisherBatchId = tostring(customDimensions.prop__BatchId)
+            , BatchPublisherEndLevel = customDimensions.LogLevel 
+            , EntityId = customDimensions.prop__EntityId
+            , BatchPublisherEndStatus = customDimensions.prop__Status
+            , RecordCount = customDimensions.prop__RecordCount            
+        ) on $left.BatchId == $right.BatchPublisherBatchId
+| sort by BatchPublisherStart desc
+| project 
+          BatchPublisherStart
+        , InterfaceId
+        , EntityType
+        , BatchId
+        , EntityId
+        , RecordCount
+        , BatchPublisherStartStatus
+        , BatchPublisherEndStatus
+// Optional filters, uncomment if/when required
+//| where InterfaceId contains "" // Filters based on the InterfaceId
+//| where EntityType == "" // Filters based on the EntityType 
+//| where EntityId == "159487280007" // Filters based on the EntityId

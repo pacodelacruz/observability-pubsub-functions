@@ -42,8 +42,21 @@ namespace Integration.Observability.PubSub.FnApp
             ExecutionContext ctx,
             ILogger log)
         {
+
+            string batchId = ctx.InvocationId.ToString(); // batchId is defined with the Azure Function invocationId
+
             try
             {
+                // Log PublisherBatchReceiptSucceeded
+                log.LogStructured(LogLevel.Information,
+                                  LoggingConstants.EventId.BatchPublisherReceiptSucceeded,
+                                  LoggingConstants.SpanCheckpointId.BatchPublisherStart,
+                                  LoggingConstants.Status.Succeeded,
+                                  LoggingConstants.InterfaceId.UserEventPub01,
+                                  LoggingConstants.MessageType.UserUpdateEventBatch,
+                                  batchId: batchId,
+                                  correlationId: null);
+
                 string eventsAsJson = await new StreamReader(req.Body).ReadToEndAsync();
 
                 //Archive the request body as an Azure Storage blob
@@ -52,12 +65,24 @@ namespace Integration.Observability.PubSub.FnApp
                 // Do most of the processing in a separate method for testability. 
                 var processResult = ProcessUserEventPublishing(eventsAsJson, ctx.InvocationId.ToString(), log);
 
-                if (!(processResult.messages is null))
+                if ((processResult.messages is null))
+                {
+                    // If paylod is not valid, log PublisherBatchValidationBadRequest error due to invalid request body.
+                    log.LogStructured(LogLevel.Error,
+                                      LoggingConstants.EventId.BatchPublisherValidationBadRequest,
+                                      LoggingConstants.SpanCheckpointId.BatchPublisherEnd,
+                                      LoggingConstants.Status.Failed,
+                                      LoggingConstants.InterfaceId.UserEventPub01,
+                                      LoggingConstants.MessageType.UserUpdateEventBatch,
+                                      batchId: batchId,
+                                      correlationId: null,
+                                      message: "Invalid request body");
+                }
+                else
                 {
                     // For each debatched message
                     foreach (var message in processResult.messages)
                     {
-                        message.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), out var batchId);
                         message.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), out var entityId);
 
                         // Add the message to the queue Collector for delivery using the Azure Functions bindings
@@ -66,33 +91,45 @@ namespace Integration.Observability.PubSub.FnApp
                         // Log PublisherDeliverySucceeded
                         log.LogStructured(LogLevel.Information,
                                           LoggingConstants.EventId.PublisherDeliverySucceeded,
-                                          LoggingConstants.SpanId.PublisherDelivery,
+                                          LoggingConstants.SpanCheckpointId.PublisherEnd,
                                           LoggingConstants.Status.Succeeded,
                                           LoggingConstants.InterfaceId.UserEventPub01,
                                           LoggingConstants.MessageType.UserUpdateEvent,
-                                          batchId: batchId.ToString(),
+                                          batchId: batchId,
                                           correlationId: message.CorrelationId,
                                           entityId: entityId.ToString());
                     }
+
+                    // After debatching and sending the messages to the queue,
+                    // log PublisherBatchDeliverySucceeded error due to invalid request body.
+                    log.LogStructured(LogLevel.Error,
+                                      LoggingConstants.EventId.BatchPublisherDeliverySucceeded,
+                                      LoggingConstants.SpanCheckpointId.BatchPublisherEnd,
+                                      LoggingConstants.Status.Succeeded,
+                                      LoggingConstants.InterfaceId.UserEventPub01,
+                                      LoggingConstants.MessageType.UserUpdateEventBatch,
+                                      batchId: batchId,
+                                      correlationId: null,
+                                      entityId: processResult.userEventsMessage.Id,
+                                      recordCount: processResult.messages.Count);
                 }
 
                 return processResult.httpResponse;
             }
             catch (Exception ex)
             {
-                // Log PublisherInternalServerError and return HTTP 500 with the invocation Id for correlation with the logged error message. 
+                // Log PublisherBatchInternalServerError and return HTTP 500 with the invocation Id for correlation with the logged error message. 
                 log.LogStructuredError(ex,
-                                       LoggingConstants.EventId.PublisherInternalServerError,
-                                       LoggingConstants.SpanId.Publisher,
+                                       LoggingConstants.EventId.BatchPublisherInternalServerError,
+                                       LoggingConstants.SpanCheckpointId.BatchPublisherEnd,
                                        LoggingConstants.Status.Failed,
                                        LoggingConstants.InterfaceId.UserEventPub01,
-                                       LoggingConstants.MessageType.UserUpdateEvent,
-                                       batchId: "Unavailable",
+                                       LoggingConstants.MessageType.UserUpdateEventBatch,
+                                       batchId: batchId,
                                        correlationId: null,
                                        message: ex.Message);
 
                 return new ObjectResult(new ApiResponse(StatusCodes.Status500InternalServerError, ctx.InvocationId.ToString(), "Internal Server Error")) { StatusCode = StatusCodes.Status500InternalServerError };
-
             }
         }
 
@@ -108,64 +145,49 @@ namespace Integration.Observability.PubSub.FnApp
             ProcessUserEventPublishing(string eventsAsJson, string invocationId, ILogger log)
         {
             var messages = new List<Message>();
-            string batchId;
+            string batchId = invocationId; // batchId is defined with the Azure Function invocationId
             string correlationId;
             string messageId;
 
             // Validate the payload
             if (!TryDeserialiseUserEvents(eventsAsJson, out var userEventsMessage))
             {
-                // If paylod is not valid
-                // Log PublisherBatchReceiptFailedBadRequest error due to invalid request body and return HTTP 400 with the invocation Id for correlation with the logged error message.
-                log.LogStructured(LogLevel.Error,
-                                  LoggingConstants.EventId.PublisherBatchReceiptFailedBadRequest,
-                                  LoggingConstants.SpanId.PublisherBatchReceipt,
-                                  LoggingConstants.Status.Failed,
-                                  LoggingConstants.InterfaceId.UserEventPub01,
-                                  LoggingConstants.MessageType.UserUpdateEvent,
-                                  batchId: "Unavailable",
-                                  correlationId: null,
-                                  message: "Invalid request body");
 
-                // Return BadRequest
+                // If paylod is not valid, return HTTP 400 BadRequest with the invocation Id for correlation.
                 return (
                     new BadRequestObjectResult(
                         new ApiResponse(StatusCodes.Status400BadRequest, invocationId, "Invalid request body")),
-                    null,
-                    null);
+                    null, null);
             }
-
-            // batchId is defined with the source's CloudEventId and the Azure Function invocationId
-            batchId = $"{userEventsMessage.Id}|{invocationId}";
 
             var userEvents = (List<UserEventDto>)userEventsMessage.Data;
 
-            // Log PublisherBatchReceiptSucceeded
-            log.LogStructured(LogLevel.Information,
-                              LoggingConstants.EventId.PublisherBatchReceiptSucceeded,
-                              LoggingConstants.SpanId.PublisherBatchReceipt,
-                              LoggingConstants.Status.Succeeded,
-                              LoggingConstants.InterfaceId.UserEventPub01,
-                              LoggingConstants.MessageType.UserUpdateEvent,
-                              batchId: batchId,
-                              entityId: userEventsMessage.Id,
-                              correlationId: null,
-                              recordCount: userEvents.Count);
+            //// Log PublisherBatchReceiptSucceeded
+            //log.LogStructured(LogLevel.Information,
+            //                  LoggingConstants.EventId.PublisherBatchReceiptSucceeded,
+            //                  LoggingConstants.SpanCheckpointId.PublisherBatchStart,
+            //                  LoggingConstants.Status.Succeeded,
+            //                  LoggingConstants.InterfaceId.UserEventPub01,
+            //                  LoggingConstants.MessageType.UserUpdateEvent,
+            //                  batchId: batchId,
+            //                  entityId: userEventsMessage.Id,
+            //                  correlationId: null,
+            //                  recordCount: userEvents.Count);
 
             // Debatch the message into multiple events and prepare them to be sent to Service Bus.
             foreach (var userEvent in userEvents)
             {
+                // correlationId is defined with the invocationId, the CloudEvents messageId, and the individial message eventId
+                correlationId = $"{invocationId}|{userEventsMessage.Id}|{userEvent.Id}";
 
-                // correlationId is defined with the batchId and eventId
-                correlationId = $"{batchId}|{userEvent.Id}";
-
-                // messageId is defined with the source's CloudEventId and eventId 
+                // messageId is defined with the source's CloudEventId and eventId. 
+                // This could be used for idempotence or de-duplication purposes. 
                 messageId = $"{userEventsMessage.Id}|{userEvent.Id}";
 
                 // Log PublisherReceiptSucceeded
                 log.LogStructured(LogLevel.Information,
                                   LoggingConstants.EventId.PublisherReceiptSucceeded,
-                                  LoggingConstants.SpanId.PublisherReceipt,
+                                  LoggingConstants.SpanCheckpointId.PublisherStart,
                                   LoggingConstants.Status.Succeeded,
                                   LoggingConstants.InterfaceId.UserEventPub01,
                                   LoggingConstants.MessageType.UserUpdateEvent,

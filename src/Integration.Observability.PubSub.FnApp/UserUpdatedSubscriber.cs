@@ -89,7 +89,7 @@ namespace Integration.Observability.PubSub.FnApp
             // Log SubscriberReceiptSucceeded
             log.LogStructured(LogLevel.Information,
                               LoggingConstants.EventId.SubscriberReceiptSucceeded,
-                              LoggingConstants.SpanId.SubscriberReceipt,
+                              LoggingConstants.SpanCheckpointId.SubscriberStart,
                               LoggingConstants.Status.Succeeded,
                               LoggingConstants.InterfaceId.UserEventSub01, 
                               LoggingConstants.MessageType.UserUpdateEvent,
@@ -117,7 +117,7 @@ namespace Integration.Observability.PubSub.FnApp
                 // Log process result
                 log.LogStructured(LoggerHelper.CalculateLogLevel(processResult.status),
                                   processResult.eventId,
-                                  LoggingConstants.SpanId.SubscriberDelivery,
+                                  LoggingConstants.SpanCheckpointId.SubscriberEnd,
                                   processResultStatus,
                                   LoggingConstants.InterfaceId.UserEventSub01, 
                                   LoggingConstants.MessageType.UserUpdateEvent,
@@ -128,7 +128,7 @@ namespace Integration.Observability.PubSub.FnApp
                                   deliveryCount: deliveryCountToLog);
 
                 // If successfully delivered or skipped because not relevant, complete the message. 
-                if (processResultStatus == LoggingConstants.Status.Succeeded || processResultStatus == LoggingConstants.Status.Skipped)
+                if (processResultStatus == LoggingConstants.Status.Succeeded || processResultStatus == LoggingConstants.Status.Discarded)
                 {
                     settlementAction = ServiceBusConstants.SettlementActions.Complete;
                 }
@@ -142,13 +142,13 @@ namespace Integration.Observability.PubSub.FnApp
             }
             catch (Exception ex)
             {
-                // Log exception and then throw as is. 
+                // Log exception
                 var failedStatus = isLastAttempt ? LoggingConstants.Status.Failed : LoggingConstants.Status.AttemptFailed;
 
                 // Log SubscriberDeliveryFailedException 
                 log.LogStructuredError(ex,
                                        LoggingConstants.EventId.SubscriberDeliveryFailedException,
-                                       LoggingConstants.SpanId.SubscriberDelivery,
+                                       LoggingConstants.SpanCheckpointId.SubscriberEnd,
                                        failedStatus,
                                        LoggingConstants.InterfaceId.UserEventSub01, 
                                        LoggingConstants.MessageType.UserUpdateEvent,
@@ -190,8 +190,8 @@ namespace Integration.Observability.PubSub.FnApp
             else if (userEvent.PhoneNumber.EndsWith("08"))
             {
                 // Simulate a stale message as described in: https://platform.deloitte.com.au/articles/enterprise-integration-patterns-on-azure-endpoints#stale-message
-                return (LoggingConstants.EventId.SubscriberDeliverySkippedStaleMessage,
-                        LoggingConstants.Status.Skipped,
+                return (LoggingConstants.EventId.SubscriberDeliveryDiscardedStaleMessage,
+                        LoggingConstants.Status.Discarded,
                         "Stale message",
                         doNotRetry: true);
             }

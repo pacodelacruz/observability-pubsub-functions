@@ -43,8 +43,8 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
         [InlineData("UserEvent01ToComplete.json", 2, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Succeeded, LoggingConstants.EventId.SubscriberDeliverySucceeded)]
         [InlineData("UserEvent06ToUnreachableTarget.json", 1, ServiceBusConstants.SettlementActions.None, LoggingConstants.Status.AttemptFailed, LoggingConstants.EventId.SubscriberDeliveryFailedUnreachableTarget)]
         [InlineData("UserEvent06ToUnreachableTarget.json", 2, ServiceBusConstants.SettlementActions.None, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryFailedUnreachableTarget)]
-        [InlineData("UserEvent08SkipStaleMessage.json", 1, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Skipped, LoggingConstants.EventId.SubscriberDeliverySkippedStaleMessage)]
-        [InlineData("UserEvent08SkipStaleMessage.json", 2, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Skipped, LoggingConstants.EventId.SubscriberDeliverySkippedStaleMessage)]
+        [InlineData("UserEvent08SkipStaleMessage.json", 1, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Discarded, LoggingConstants.EventId.SubscriberDeliveryDiscardedStaleMessage)]
+        [InlineData("UserEvent08SkipStaleMessage.json", 2, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Discarded, LoggingConstants.EventId.SubscriberDeliveryDiscardedStaleMessage)]
         [InlineData("UserEvent09InvalidMessage.json", 1, ServiceBusConstants.SettlementActions.DeadLetter, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryFailedInvalidMessage)]
         [InlineData("UserEvent09InvalidMessage.json", 2, ServiceBusConstants.SettlementActions.DeadLetter, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryFailedInvalidMessage)]
 
