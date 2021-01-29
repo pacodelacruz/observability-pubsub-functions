@@ -1,6 +1,6 @@
-using Azure.Storage.Blobs;
 using Integration.Observability.Constants;
 using Integration.Observability.Extensions;
+using Integration.Observability.Helpers;
 using Integration.Observability.PubSub.FnApp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -47,7 +47,7 @@ namespace Integration.Observability.PubSub.FnApp
 
             try
             {
-                // Log PublisherBatchReceiptSucceeded
+                // Log BatchPublisherReceiptSucceeded
                 log.LogStructured(LogLevel.Information,
                                   LoggingConstants.EventId.BatchPublisherReceiptSucceeded,
                                   LoggingConstants.SpanCheckpointId.BatchPublisherStart,
@@ -60,17 +60,17 @@ namespace Integration.Observability.PubSub.FnApp
                 string eventsAsJson = await new StreamReader(req.Body).ReadToEndAsync();
 
                 //Archive the request body as an Azure Storage blob
-                ArchiveRequestBody(eventsAsJson, $"{DateTime.Now:yyyy/MM/dd}/{ctx.InvocationId}.json", _options.Value.AzureWebJobsStorage, _options.Value.StorageArchiveBlobContainer);
+                StorageHelper.ArchiveToBlob(eventsAsJson, _options.Value.StorageArchiveBlobContainer, $"{DateTime.Now:yyyy/MM/dd}/{ctx.InvocationId}.json", _options.Value.AzureWebJobsStorage);
 
                 // Do most of the processing in a separate method for testability. 
                 var processResult = ProcessUserEventPublishing(eventsAsJson, ctx.InvocationId.ToString(), log);
 
                 if ((processResult.messages is null))
                 {
-                    // If paylod is not valid, log PublisherBatchValidationBadRequest error due to invalid request body.
+                    // If paylod is not valid, log BatchPublisherValidationFailedBadRequest error due to invalid request body.
                     log.LogStructured(LogLevel.Error,
-                                      LoggingConstants.EventId.BatchPublisherValidationBadRequest,
-                                      LoggingConstants.SpanCheckpointId.BatchPublisherEnd,
+                                      LoggingConstants.EventId.BatchPublisherValidationFailedBadRequest,
+                                      LoggingConstants.SpanCheckpointId.BatchPublisherFinish,
                                       LoggingConstants.Status.Failed,
                                       LoggingConstants.InterfaceId.UserEventPub01,
                                       LoggingConstants.MessageType.UserUpdateEventBatch,
@@ -91,7 +91,7 @@ namespace Integration.Observability.PubSub.FnApp
                         // Log PublisherDeliverySucceeded
                         log.LogStructured(LogLevel.Information,
                                           LoggingConstants.EventId.PublisherDeliverySucceeded,
-                                          LoggingConstants.SpanCheckpointId.PublisherEnd,
+                                          LoggingConstants.SpanCheckpointId.PublisherFinish,
                                           LoggingConstants.Status.Succeeded,
                                           LoggingConstants.InterfaceId.UserEventPub01,
                                           LoggingConstants.MessageType.UserUpdateEvent,
@@ -101,10 +101,10 @@ namespace Integration.Observability.PubSub.FnApp
                     }
 
                     // After debatching and sending the messages to the queue,
-                    // log PublisherBatchDeliverySucceeded error due to invalid request body.
+                    // log BatchPublisherDeliverySucceeded.
                     log.LogStructured(LogLevel.Error,
                                       LoggingConstants.EventId.BatchPublisherDeliverySucceeded,
-                                      LoggingConstants.SpanCheckpointId.BatchPublisherEnd,
+                                      LoggingConstants.SpanCheckpointId.BatchPublisherFinish,
                                       LoggingConstants.Status.Succeeded,
                                       LoggingConstants.InterfaceId.UserEventPub01,
                                       LoggingConstants.MessageType.UserUpdateEventBatch,
@@ -118,10 +118,10 @@ namespace Integration.Observability.PubSub.FnApp
             }
             catch (Exception ex)
             {
-                // Log PublisherBatchInternalServerError and return HTTP 500 with the invocation Id for correlation with the logged error message. 
+                // Log BatchPublisherProcessingFailedInternalServerError and return HTTP 500 with the invocation Id for correlation with the logged error message. 
                 log.LogStructuredError(ex,
-                                       LoggingConstants.EventId.BatchPublisherInternalServerError,
-                                       LoggingConstants.SpanCheckpointId.BatchPublisherEnd,
+                                       LoggingConstants.EventId.BatchPublisherProcessingFailedInternalServerError,
+                                       LoggingConstants.SpanCheckpointId.BatchPublisherFinish,
                                        LoggingConstants.Status.Failed,
                                        LoggingConstants.InterfaceId.UserEventPub01,
                                        LoggingConstants.MessageType.UserUpdateEventBatch,
@@ -161,18 +161,6 @@ namespace Integration.Observability.PubSub.FnApp
             }
 
             var userEvents = (List<UserEventDto>)userEventsMessage.Data;
-
-            //// Log PublisherBatchReceiptSucceeded
-            //log.LogStructured(LogLevel.Information,
-            //                  LoggingConstants.EventId.PublisherBatchReceiptSucceeded,
-            //                  LoggingConstants.SpanCheckpointId.PublisherBatchStart,
-            //                  LoggingConstants.Status.Succeeded,
-            //                  LoggingConstants.InterfaceId.UserEventPub01,
-            //                  LoggingConstants.MessageType.UserUpdateEvent,
-            //                  batchId: batchId,
-            //                  entityId: userEventsMessage.Id,
-            //                  correlationId: null,
-            //                  recordCount: userEvents.Count);
 
             // Debatch the message into multiple events and prepare them to be sent to Service Bus.
             foreach (var userEvent in userEvents)
@@ -250,25 +238,6 @@ namespace Integration.Observability.PubSub.FnApp
             {
                 userEventsMessage = null;
                 return false;
-            }
-        }
-
-        /// <summary>
-        /// Archives a message as an Azure Storage blob
-        /// </summary>
-        /// <param name="body"></param>
-        /// <param name="blobName"></param>
-        /// <param name="connectionString"></param>
-        /// <param name="containerName"></param>
-        private void ArchiveRequestBody(string body, string blobName, string connectionString, string containerName)
-        {
-            BlobContainerClient container = new BlobContainerClient(connectionString, containerName);
-            container.CreateIfNotExists();
-            BlobClient blob = container.GetBlobClient(blobName);
-            var content = Encoding.UTF8.GetBytes(body);
-            using (var memoryStream = new MemoryStream(content))
-            {
-                blob.Upload(memoryStream);
             }
         }
     }

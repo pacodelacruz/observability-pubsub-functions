@@ -18,6 +18,7 @@ namespace Integration.Observability.PubSub.FnApp
             builder.Services.AddOptions<FunctionOptions>()
                 .Configure<IConfiguration>((configSection, configuration) =>
                 { configuration.Bind(configSection); });
+            builder.Services.AddHttpClient();
         }
     }
 }

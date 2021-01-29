@@ -10,12 +10,12 @@ traces
         , BatchPublisherStartStatus = customDimensions.prop__Status
 | join kind = leftouter (     
     traces       
-    | where customDimensions.prop__SpanCheckpointId == 'BatchPublisherEnd'   
-    | project BatchPublisherEnd = timestamp   
+    | where customDimensions.prop__SpanCheckpointId == 'BatchPublisherFinish'   
+    | project BatchPublisherFinish = timestamp   
             , BatchPublisherBatchId = tostring(customDimensions.prop__BatchId)
-            , BatchPublisherEndLevel = customDimensions.LogLevel 
+            , BatchPublisherFinishLevel = customDimensions.LogLevel 
             , EntityId = customDimensions.prop__EntityId
-            , BatchPublisherEndStatus = customDimensions.prop__Status
+            , BatchPublisherFinishStatus = customDimensions.prop__Status
             , RecordCount = customDimensions.prop__RecordCount            
         ) on $left.BatchId == $right.BatchPublisherBatchId
 | sort by BatchPublisherStart desc
@@ -27,7 +27,7 @@ traces
         , EntityId
         , RecordCount
         , BatchPublisherStartStatus
-        , BatchPublisherEndStatus
+        , BatchPublisherFinishStatus
 // Optional filters, uncomment if/when required
 //| where InterfaceId contains "" // Filters based on the InterfaceId
 //| where EntityType == "" // Filters based on the EntityType 

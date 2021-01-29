@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Integration.Observability.Constants
+﻿namespace Integration.Observability.Constants
 {
     /// <summary>
     /// Constants used for Logging and Tracing
@@ -10,31 +6,31 @@ namespace Integration.Observability.Constants
     public class LoggingConstants
     {
         /// <summary>
-        /// To identify the tracing span checkpoints
-        /// Follow the structure SpanId + CheckPoint (e.g. Start or End)
+        /// To identify the tracing span checkpoints (e.g. start or finish of each span)
+        /// Enum values follow the structure spanId + checkPoint
         /// </summary>
         public enum SpanCheckpointId
         {
             BatchPublisherStart,
-            BatchPublisherEnd,
+            BatchPublisherFinish,
             PublisherStart,
-            PublisherEnd,
+            PublisherFinish,
             SubscriberStart,
-            SubscriberEnd
+            SubscriberFinish
         }
 
         /// <summary>
-        /// Event Ids useful for querying, analysis and troubleshooting. 
-        /// When granularity is required, different event ids can happen in the same combination of SpanCheckpointId and status. 
+        /// Event Ids useful for querying, analysing, and troubleshooting tracing data. 
+        /// Different eventIds can happen in the same combination of SpanCheckpointId and status to provide more granularity. 
         /// Follow the structure SpanId + SpanStage + EventDescription
         /// </summary>
         public enum EventId
         {
 
             BatchPublisherReceiptSucceeded = 11000,
-            BatchPublisherValidationBadRequest = 11090,
+            BatchPublisherValidationFailedBadRequest = 11090,
             BatchPublisherDeliverySucceeded = 11100,
-            BatchPublisherInternalServerError = 11199,
+            BatchPublisherProcessingFailedInternalServerError = 11199,
             PublisherReceiptSucceeded = 11200,
             PublisherDeliverySucceeded = 11300,
             SubscriberReceiptSucceeded = 11500,
@@ -53,13 +49,14 @@ namespace Integration.Observability.Constants
         {
             NotAvailable,   // The span status is not yet available
             Succeeded,      // The span process succeeded.
-            AttemptFailed,  // An attempt of the span process failed. A retry is expected. 
-            Failed,         // The span process failed. A retry is not expected. 
-            Discarded       // The span process was not performed due to business rules. 
+            AttemptFailed,  // An attempt of the span process failed. A retry for the message is expected. 
+            Failed,         // The span process failed. A retry for the message is not expected. 
+            Discarded       // The message processed in the span was discarded due to business rules. 
         }
 
         /// <summary>
         /// The entity being processed in the span. 
+        /// Add when more message types are being processed. 
         /// </summary>
         public enum MessageType
         {
@@ -69,6 +66,7 @@ namespace Integration.Observability.Constants
 
         /// <summary>
         /// The business interfaceId
+        /// Add when more interfaces are being processed. 
         /// </summary>
         public enum InterfaceId
         {

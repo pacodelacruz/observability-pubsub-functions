@@ -1,8 +1,5 @@
 ﻿using Integration.Observability.Constants;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Integration.Observability.Helpers
 {
@@ -19,12 +16,13 @@ namespace Integration.Observability.Helpers
             {
                 case LoggingConstants.Status.Succeeded:
                     return LogLevel.Information;
+                // When an attempt failed, but a retry is expected, return Warning
                 case LoggingConstants.Status.AttemptFailed:
+                // When a message is discarded due to business rules, return Warning
+                case LoggingConstants.Status.Discarded:
                     return LogLevel.Warning;                    
                 case LoggingConstants.Status.Failed:
                     return LogLevel.Error;
-                case LoggingConstants.Status.Discarded:
-                    return LogLevel.Warning;
                 default:
                     return LogLevel.Information;
             }

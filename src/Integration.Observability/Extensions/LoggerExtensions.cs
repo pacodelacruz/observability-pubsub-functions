@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Integration.Observability.Constants;
+﻿using Integration.Observability.Constants;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace Integration.Observability.Extensions
 {

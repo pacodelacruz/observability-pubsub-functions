@@ -100,7 +100,7 @@ namespace Integration.Observability.PubSub.FnApp
 
             // Check if the current delivery count equals the max delivery count for the queue. 
             bool isLastAttempt = (deliveryCount == _options.Value.ServiceBusUserUpdateQueueMaxDeliveryCount);
-            var processResultStatus = LoggingConstants.Status.NotAvailable;
+            LoggingConstants.Status processResultStatus;
 
             try
             {
@@ -117,7 +117,7 @@ namespace Integration.Observability.PubSub.FnApp
                 // Log process result
                 log.LogStructured(LoggerHelper.CalculateLogLevel(processResult.status),
                                   processResult.eventId,
-                                  LoggingConstants.SpanCheckpointId.SubscriberEnd,
+                                  LoggingConstants.SpanCheckpointId.SubscriberFinish,
                                   processResultStatus,
                                   LoggingConstants.InterfaceId.UserEventSub01, 
                                   LoggingConstants.MessageType.UserUpdateEvent,
@@ -148,7 +148,7 @@ namespace Integration.Observability.PubSub.FnApp
                 // Log SubscriberDeliveryFailedException 
                 log.LogStructuredError(ex,
                                        LoggingConstants.EventId.SubscriberDeliveryFailedException,
-                                       LoggingConstants.SpanCheckpointId.SubscriberEnd,
+                                       LoggingConstants.SpanCheckpointId.SubscriberFinish,
                                        failedStatus,
                                        LoggingConstants.InterfaceId.UserEventSub01, 
                                        LoggingConstants.MessageType.UserUpdateEvent,
