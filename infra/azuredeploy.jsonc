@@ -215,6 +215,14 @@
               "value": "1"
             },
             {
+              "name": "WEBSITE_TIME_ZONE",
+              "value": "AUS Eastern Standard Time"
+            },
+            {
+              "name": "BaseUrl",
+              "value": "[concat('https://', variables('functionAppName'), '.azurewebsites.net')]"
+            },
+            {
               "name": "ServiceBusConnectionString",
               "value": "[listKeys(resourceId('Microsoft.ServiceBus/namespaces/AuthorizationRules', variables('serviceBusName'), 'RootManageSharedAccessKey'),'2017-04-01').primaryConnectionString]"
             },
@@ -229,6 +237,14 @@
             {
               "name": "StorageArchiveBlobContainer",
               "value": "[variables('storageBlobContainerArchiveName')]"
+            },
+            {
+              "name": "TrafficGeneratorCron",
+              "value": "0 */20 8-18 * * *"
+            },
+            {
+              "name": "TrafficGeneratorDisabled",
+              "value": "false"
             }
           ]
         }

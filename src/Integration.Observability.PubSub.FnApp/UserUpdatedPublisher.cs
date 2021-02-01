@@ -102,7 +102,7 @@ namespace Integration.Observability.PubSub.FnApp
 
                     // After debatching and sending the messages to the queue,
                     // log BatchPublisherDeliverySucceeded.
-                    log.LogStructured(LogLevel.Error,
+                    log.LogStructured(LogLevel.Information,
                                       LoggingConstants.EventId.BatchPublisherDeliverySucceeded,
                                       LoggingConstants.SpanCheckpointId.BatchPublisherFinish,
                                       LoggingConstants.Status.Succeeded,

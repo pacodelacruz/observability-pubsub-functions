@@ -1,0 +1,10 @@
+﻿// Message Count per EntityType and time bin
+traces 
+| sort by timestamp desc 
+| where customDimensions.EventName != ""
+| where tostring(customDimensions.prop__SpanCheckpointId) contains "PublisherStart"
+| project timestamp 
+        , EntityType = tostring(customDimensions.prop__EntityType)
+| summarize Count = count(EntityType) 
+        by bin(timestamp, 1h), 
+           EntityType

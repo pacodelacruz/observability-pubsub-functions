@@ -3,82 +3,84 @@
 // For those messages that are retried in the Susbcriber span, it shows the values of the last recorded attempt. 
 traces 
 | sort by timestamp desc 
-| where customDimensions.prop__SpanId == 'PublisherReceipt'
+| where customDimensions.prop__SpanCheckpointId == 'PublisherStart'
 | project   EntityType = tostring(customDimensions.prop__EntityType)
           , PublisherInterfaceId = tostring(customDimensions.prop__InterfaceId)
           , EntityId = tostring(customDimensions.prop__EntityId)
+          , BatchId = tostring(customDimensions.prop__BatchId)
           , CorrelationId = tostring(customDimensions.prop__CorrelationId)
-          , PublisherReceiptLogLevel = customDimensions.LogLevel 
-          , PublisherReceiptEventName = customDimensions.EventName
-          , PublisherReceiptTimestamp = timestamp 
+          , PublisherStartLogLevel = customDimensions.LogLevel 
+          , PublisherStartEventName = customDimensions.EventName
+          , PublisherStartTimestamp = timestamp 
           , PublisherComponent = operation_Name
-          , PublisherReceiptStatus = tostring(customDimensions.prop__Status)
+          , PublisherStartStatus = tostring(customDimensions.prop__Status)
 | join kind = leftouter (     
     traces 
     | sort by timestamp desc
-    | where customDimensions.prop__SpanId == 'PublisherDelivery'
-    | project PublisherDeliveryLogLevel = customDimensions.LogLevel 
-            , PublisherDeliveryEventName = customDimensions.EventName
-            , PublisherDeliveryStatus = tostring(customDimensions.prop__Status)
-            , PublisherDeliveryTimestamp = timestamp 
+    | where customDimensions.prop__SpanCheckpointId == 'PublisherFinish'
+    | project PublisherFinishLogLevel = customDimensions.LogLevel 
+            , PublisherFinishEventName = customDimensions.EventName
+            , PublisherFinishStatus = tostring(customDimensions.prop__Status)
+            , PublisherFinishTimestamp = timestamp 
             , CorrelationId = tostring(customDimensions.prop__CorrelationId)
     ) on $left.CorrelationId == $right.CorrelationId
 | join kind = leftouter (     
     traces 
     | sort by timestamp desc
-    | where customDimensions.prop__SpanId == 'SubscriberReceipt'
-    | project SubscriberReceiptLogLevel = customDimensions.LogLevel 
+    | where customDimensions.prop__SpanCheckpointId == 'SubscriberStart'
+    | project SubscriberStartLogLevel = customDimensions.LogLevel 
             , SubscriberInterfaceId = tostring(customDimensions.prop__InterfaceId)
-            , SubscriberReceiptEventName = customDimensions.EventName
+            , SubscriberStartEventName = customDimensions.EventName
             , SubscriberComponent = operation_Name
-            , SubscriberReceiptStatus = tostring(customDimensions.prop__Status)
-            , SubscriberReceiptDeliveryCount = tostring(customDimensions.prop__DeliveryCount)
-            , SubscriberReceiptTimestamp = timestamp 
+            , SubscriberStartStatus = tostring(customDimensions.prop__Status)
+            , SubscriberStartDeliveryCount = tostring(customDimensions.prop__DeliveryCount)
+            , SubscriberStartTimestamp = timestamp 
             , CorrelationId = tostring(customDimensions.prop__CorrelationId)
         | join kind = inner ( // To get only the last attempt of the span
             traces
-            | where customDimensions.prop__SpanId == 'SubscriberReceipt'
-            | summarize   SubscriberReceiptDeliveryCount = max(tostring(customDimensions.prop__DeliveryCount))
+            | where customDimensions.prop__SpanCheckpointId == 'SubscriberStart'
+            | summarize   SubscriberStartDeliveryCount = max(tostring(customDimensions.prop__DeliveryCount))
                         by CorrelationId = tostring(customDimensions.prop__CorrelationId)
                         , operation_Name // in case of multiple subscribers
-        ) on $left.CorrelationId == $right.CorrelationId, $left.SubscriberReceiptDeliveryCount == $right.SubscriberReceiptDeliveryCount
+        ) on $left.CorrelationId == $right.CorrelationId, $left.SubscriberStartDeliveryCount == $right.SubscriberStartDeliveryCount
     ) on $left.CorrelationId == $right.CorrelationId
 | join kind = leftouter (     
     traces 
     | sort by timestamp desc
-    | where customDimensions.prop__SpanId == 'SubscriberDelivery'
-    | project SubscriberDeliveryLogLevel = customDimensions.LogLevel 
-            , SubscriberDeliveryEventName = customDimensions.EventName
-            , SubscriberDeliveryStatus = customDimensions.prop__Status
-            , SubscriberDeliveryDeliveryCount = tostring(customDimensions.prop__DeliveryCount)
-            , SubscriberDeliveryTimestamp = timestamp 
+    | where customDimensions.prop__SpanCheckpointId == 'SubscriberFinish'
+    | project SubscriberFinishLogLevel = customDimensions.LogLevel 
+            , SubscriberFinishEventName = customDimensions.EventName
+            , SubscriberFinishStatus = customDimensions.prop__Status
+            , SubscriberFinishDeliveryCount = tostring(customDimensions.prop__DeliveryCount)
+            , SubscriberFinishTimestamp = timestamp 
             , CorrelationId = tostring(customDimensions.prop__CorrelationId)
         | join kind = inner (  // To get only the last attempt of the span
             traces
-            | where customDimensions.prop__SpanId == 'SubscriberDelivery'
-            | summarize   SubscriberDeliveryDeliveryCount = max(tostring(customDimensions.prop__DeliveryCount))
+            | where customDimensions.prop__SpanCheckpointId == 'SubscriberFinish'
+            | summarize   SubscriberFinishDeliveryCount = max(tostring(customDimensions.prop__DeliveryCount))
                         by CorrelationId = tostring(customDimensions.prop__CorrelationId)
                         , operation_Name // in case of multiple subscribers
-        ) on $left.CorrelationId == $right.CorrelationId, $left.SubscriberDeliveryDeliveryCount == $right.SubscriberDeliveryDeliveryCount
+        ) on $left.CorrelationId == $right.CorrelationId, $left.SubscriberFinishDeliveryCount == $right.SubscriberFinishDeliveryCount
     ) on $left.CorrelationId == $right.CorrelationId    
 | project 
-          PublisherReceiptTimestamp
+          PublisherStartTimestamp
+        , BatchId 
         , CorrelationId 
         , PublisherInterfaceId
         , SubscriberInterfaceId
         , EntityType
         , EntityId 
-        , PublisherReceiptEventName
-        , PublisherDeliveryEventName
-        , SubscriberReceiptEventName
-        , SubscriberDeliveryEventName
-        , PublisherReceiptStatus 
-        , PublisherDeliveryStatus 
-        , SubscriberReceiptStatus
-        , SubscriberDeliveryStatus
-        , SubscriberReceiptDeliveryCount
-        , SubscriberDeliveryDeliveryCount
-| sort by PublisherReceiptTimestamp desc
+        , PublisherStartEventName
+        , PublisherFinishEventName
+        , SubscriberStartEventName
+        , SubscriberFinishEventName
+        , PublisherStartStatus 
+        , PublisherFinishStatus 
+        , SubscriberStartStatus
+        , SubscriberFinishStatus
+        , SubscriberStartDeliveryCount
+        , SubscriberFinishDeliveryCount
+| sort by PublisherStartTimestamp desc
 // Optional filters, uncomment if/when required
 //| where CorrelationId contains "" // Filters based on the correlationId, which includes the customer provided batchId and the Azure Function involcationId 
 //| where EntityType == "" // Filters based on the EntityType 

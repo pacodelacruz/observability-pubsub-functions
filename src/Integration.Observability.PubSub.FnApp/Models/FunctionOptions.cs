@@ -15,6 +15,6 @@ namespace Integration.Observability.PubSub.FnApp.Models
         public int ServiceBusUserUpdateQueueMaxDeliveryCount { get; set; } = 2;
         public string AzureWebJobsStorage { get; set;  } = "UseDevelopmentStorage=true";
         public string StorageArchiveBlobContainer { get; set; } = "archive";
-        public string Hostname { get; set; } 
+        public string BaseUrl { get; set; } 
     }
 }

@@ -4,10 +4,12 @@
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "APPINSIGHTS_INSTRUMENTATIONKEY": "",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "hostname": "https://fncapp-yourapp.azurewebsites.net",
+    "BaseUrl": "https://fncapp-yourapp.azurewebsites.net",
     "ServiceBusConnectionString": "",
     "ServiceBusUserUpdateQueueName": "userupdate-evt",
     "ServiceBusUserUpdateQueueMaxDeliveryCount": "2",
-    "StorageArchiveBlobContainer": "archive"
+    "StorageArchiveBlobContainer": "archive",
+    "TrafficGeneratorCron": "0 */1 8-18 * * *",
+    "TrafficGeneratorDisabled": "false"
   }
 }

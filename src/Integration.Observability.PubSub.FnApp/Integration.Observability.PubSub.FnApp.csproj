@@ -11,7 +11,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Extensions" Version="1.1.0" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Core" Version="3.0.25" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.ServiceBus" Version="4.2.1" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="3.1.11" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.11" />
   </ItemGroup>
   <ItemGroup>
@@ -32,6 +32,33 @@
     <None Update="local.settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+    <None Update="TrafficGeneratorPayloads\9.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TrafficGeneratorPayloads\8.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TrafficGeneratorPayloads\7.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TrafficGeneratorPayloads\6.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TrafficGeneratorPayloads\5.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TrafficGeneratorPayloads\4.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TrafficGeneratorPayloads\3.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TrafficGeneratorPayloads\2.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="TrafficGeneratorPayloads\1.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="TrafficGeneratorPayloads\0.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
