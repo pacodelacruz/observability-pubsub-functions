@@ -183,16 +183,17 @@ namespace Integration.Observability.PubSub.FnApp
                                   correlationId: correlationId,
                                   entityId: userEvent.Id.ToString());
 
-                // Create Service Bus message
                 var messageBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(userEvent));
 
+                // Create Service Bus message
+                // Add message properties, including those cross-span (bagagge items) tracing metadata properties 
                 var userEventMessage = new Message(messageBody)
                 {
                     MessageId = messageId,
                     CorrelationId = correlationId
                 };
 
-                // Add user properties to the Service Bus message
+                // Add user properties to the Service Bus message, including those cross-span (bagagge items) tracing metadata properties 
                 userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), batchId);
                 userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), userEvent.Id.ToString());
                 userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Source.ToString(), userEventsMessage.Source);

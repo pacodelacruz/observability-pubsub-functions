@@ -82,6 +82,7 @@ traces
         , SubscriberFinishDeliveryCount
 | sort by PublisherStartTimestamp desc
 // Optional filters, uncomment if/when required
+//| where BatchId == ""
 //| where CorrelationId contains "" // Filters based on the correlationId, which includes the customer provided batchId and the Azure Function involcationId 
 //| where EntityType == "" // Filters based on the EntityType 
 //| where EntityId == "" // Filters based on the EntityId

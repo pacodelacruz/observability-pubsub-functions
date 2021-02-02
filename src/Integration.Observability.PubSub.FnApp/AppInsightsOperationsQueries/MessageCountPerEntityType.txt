@@ -8,3 +8,4 @@ traces
 | summarize Count = count(EntityType) 
         by bin(timestamp, 1h), 
            EntityType
+| sort by timestamp desc 
