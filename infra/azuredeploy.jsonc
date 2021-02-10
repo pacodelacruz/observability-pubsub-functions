@@ -32,7 +32,7 @@
     "workbookDisplayName": "Tracing",
     "serviceBusName": "[concat('sbus-', parameters('appName'))]",
     "repoURL": "https://github.com/pacodelacruz/observability-pubsub-functions.git",
-    "branch": "master",
+    "branch": "main",
     "storageAccountSuffix": "[replace(if(greaterOrEquals(length(parameters('appName')), 20), substring(parameters('appName'), 0, 20), substring(parameters('appName'), 0, length(parameters('appName')))), '-', '')]",
     "storageAccountName": "[concat('st', variables('storageAccountSuffix'), substring(uniquestring(resourceGroup().id), 0, 2))]",    
     "storageBlobContainerArchiveName": "archive",
