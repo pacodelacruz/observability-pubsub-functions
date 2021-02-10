@@ -336,9 +336,6 @@ output/
 
 # Azure Functions localsettings file
 local.settings.json
-tmp.yaml
-src/Integration.Observability.PubSub.FnApp/Properties/serviceDependencies.fncapp-pubsubobs - Web Deploy.json
-src/Integration.Observability.PubSub.FnApp/Properties/ServiceDependencies/fncapp-pubsubobs - Web Deploy/appInsights1.arm.json
-src/Integration.Observability.PubSub.FnApp/Properties/ServiceDependencies/fncapp-pubsubobs - Web Deploy/storage1.arm.json
-src/Integration.Observability.PubSub.FnApp/Properties/ServiceDependencies/
+
 src/Integration.Observability.PubSub.FnApp/Properties/
+src/Integration.Observability.PubSub.FnApp/Properties/ServiceDependencies/
