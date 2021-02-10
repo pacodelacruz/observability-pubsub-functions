@@ -4,6 +4,7 @@
   "parameters": {
     "appName": {
       "type": "string",
+      "maxLength": 16,
       "metadata": {
         "description": "Used to name the different components of the Sample App. I.e. the Function App, the consumption plan, Application Insights, Service Bus, and the Azure Storage account. Bear in mind that many of these resources require a globally unique name"
       }
@@ -30,7 +31,7 @@
     "workbookName": "9ac0d31a-9d1c-9d1c-9d1c-9ac0d31ac777",
     "workbookDisplayName": "Tracing",
     "serviceBusName": "[concat('sbus-', parameters('appName'))]",
-    "repoURL": "https://github.com/pacodelacruz/serverless-request-bin-durable-functions.git",
+    "repoURL": "https://github.com/pacodelacruz/observability-pubsub-functions.git",
     "branch": "master",
     "storageAccountSuffix": "[replace(if(greaterOrEquals(length(parameters('appName')), 20), substring(parameters('appName'), 0, 20), substring(parameters('appName'), 0, length(parameters('appName')))), '-', '')]",
     "storageAccountName": "[concat('st', variables('storageAccountSuffix'), substring(uniquestring(resourceGroup().id), 0, 2))]",    
@@ -263,7 +264,7 @@
             },
             {
               "name": "TrafficGeneratorDisabled",
-              "value": "false"
+              "value": "true"
             }
           ]
         }
@@ -273,21 +274,21 @@
           "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
           "[resourceId('microsoft.insights/components', variables('applicationInsightsName'))]",
           "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusName'))]"
-    //   // ],
-    //   // "resources": [
-    //   //     {
-    //   //         "apiVersion": "2015-08-01",
-    //   //         "name": "web",
-    //   //         "type": "sourcecontrols",
-    //   //         "dependsOn": [
-    //   //             "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]"
-    //   //         ],
-    //   //         "properties": {
-    //   //             "RepoUrl": "[variables('repoURL')]",
-    //   //             "branch": "[variables('branch')]",
-    //   //             "IsManualIntegration": true
-    //   //         }
-    //   //     }
+      ],
+      "resources": [
+        {
+          "type": "sourcecontrols",
+          "name": "GitHub",
+          "apiVersion": "2018-11-01",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]"
+          ],
+          "properties": {
+            "RepoUrl": "[variables('repoURL')]",
+            "branch": "[variables('branch')]",
+            "IsManualIntegration": true
+          }
+        }
       ]
     }    
   ],
