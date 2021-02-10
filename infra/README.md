@@ -2,6 +2,8 @@
 
 This project contains deployment artefacts.
 
+[![Deploy to Azure](https://docs.microsoft.com/en-us/azure/templates/media/deploy-to-azure.svg)](https://deploy.azure.com/?repository=https://github.com/pacodelacruz/serverless-request-bin-azure-functions/infra#/form/setup)
+
 ## CLI Snippets
 
 To connect to Azure CLI and set the right context:

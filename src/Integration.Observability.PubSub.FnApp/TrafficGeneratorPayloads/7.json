@@ -1,0 +1,21 @@
+﻿{
+	"specversion": "1.0",
+	"type": "user.updated",
+	"source": "ClientApp",
+	"subject": null,
+	"id": "{batchId}",
+	"time": "{timestamp}",
+	"datacontenttype": "application/json",
+	"data": [
+		{
+			"id": 1,
+			"userName": "janey",
+			"email": "janey@demo.com.au",
+			"role": "Super Manager",
+			"givenName": "Jane",
+			"familyName": "Y",
+			"phoneNumber": "00 000 000 000",
+			"timestamp": "{timestamp}"
+		}
+	]
+}

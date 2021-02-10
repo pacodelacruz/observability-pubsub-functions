@@ -1,5 +1,6 @@
 using Integration.Observability.Constants;
 using Integration.Observability.Extensions;
+using Integration.Observability.Helpers;
 using Integration.Observability.PubSub.FnApp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -41,47 +42,94 @@ namespace Integration.Observability.PubSub.FnApp
             ExecutionContext ctx,
             ILogger log)
         {
+
+            string batchId = ctx.InvocationId.ToString(); // batchId is defined with the Azure Function invocationId
+
             try
             {
+                // Log BatchPublisherReceiptSucceeded
+                log.LogStructured(LogLevel.Information,
+                                  LoggingConstants.EventId.BatchPublisherReceiptSucceeded,
+                                  LoggingConstants.SpanCheckpointId.BatchPublisherStart,
+                                  LoggingConstants.Status.Succeeded,
+                                  LoggingConstants.InterfaceId.UserEventPub01,
+                                  LoggingConstants.MessageType.UserUpdateEventBatch,
+                                  batchId: batchId,
+                                  correlationId: null);
+
                 string eventsAsJson = await new StreamReader(req.Body).ReadToEndAsync();
+
+                //Archive the request body as an Azure Storage blob
+                StorageHelper.ArchiveToBlob(eventsAsJson, _options.Value.StorageArchiveBlobContainer, $"{DateTime.Now:yyyy/MM/dd}/{ctx.InvocationId}.json", _options.Value.AzureWebJobsStorage);
 
                 // Do most of the processing in a separate method for testability. 
                 var processResult = ProcessUserEventPublishing(eventsAsJson, ctx.InvocationId.ToString(), log);
 
-                // For each debatched message
-                foreach (var message in processResult.messages)
+                if ((processResult.messages is null))
                 {
-                    message.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), out var entityId);
+                    // If paylod is not valid, log BatchPublisherValidationFailedBadRequest error due to invalid request body.
+                    log.LogStructured(LogLevel.Error,
+                                      LoggingConstants.EventId.BatchPublisherValidationFailedBadRequest,
+                                      LoggingConstants.SpanCheckpointId.BatchPublisherFinish,
+                                      LoggingConstants.Status.Failed,
+                                      LoggingConstants.InterfaceId.UserEventPub01,
+                                      LoggingConstants.MessageType.UserUpdateEventBatch,
+                                      batchId: batchId,
+                                      correlationId: null,
+                                      message: "Invalid request body");
+                }
+                else
+                {
+                    // For each debatched message
+                    foreach (var message in processResult.messages)
+                    {
+                        message.UserProperties.TryGetValue(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), out var entityId);
 
-                    // Add the message to the queue Collector for delivery using the Azure Functions bindings
-                    await queueCollector.AddAsync(message);
+                        // Add the message to the queue Collector for delivery using the Azure Functions bindings
+                        await queueCollector.AddAsync(message);
 
-                    // Log PublisherDeliverySucceeded
+                        // Log PublisherDeliverySucceeded
+                        log.LogStructured(LogLevel.Information,
+                                          LoggingConstants.EventId.PublisherDeliverySucceeded,
+                                          LoggingConstants.SpanCheckpointId.PublisherFinish,
+                                          LoggingConstants.Status.Succeeded,
+                                          LoggingConstants.InterfaceId.UserEventPub01,
+                                          LoggingConstants.MessageType.UserUpdateEvent,
+                                          batchId: batchId,
+                                          correlationId: message.CorrelationId,
+                                          entityId: entityId.ToString());
+                    }
+
+                    // After debatching and sending the messages to the queue,
+                    // log BatchPublisherDeliverySucceeded.
                     log.LogStructured(LogLevel.Information,
-                                      (int)LoggingConstants.EventId.PublisherDeliverySucceeded,
-                                      LoggingConstants.SpanId.PublisherDelivery,
+                                      LoggingConstants.EventId.BatchPublisherDeliverySucceeded,
+                                      LoggingConstants.SpanCheckpointId.BatchPublisherFinish,
                                       LoggingConstants.Status.Succeeded,
-                                      LoggingConstants.MessageType.UserUpdateEvent,
-                                      processResult.userEventsMessage.Id,
-                                      entityId.ToString());
+                                      LoggingConstants.InterfaceId.UserEventPub01,
+                                      LoggingConstants.MessageType.UserUpdateEventBatch,
+                                      batchId: batchId,
+                                      correlationId: null,
+                                      entityId: processResult.userEventsMessage.Id,
+                                      recordCount: processResult.messages.Count);
                 }
 
                 return processResult.httpResponse;
             }
             catch (Exception ex)
             {
-                {
-                    // Log PublisherInternalServerError and return HTTP 500 with the invocation Id for correlation with the logged error message. 
-                    log.LogStructuredError(ex, 
-                                           (int)LoggingConstants.EventId.PublisherInternalServerError, 
-                                           LoggingConstants.SpanId.Publisher, 
-                                           LoggingConstants.Status.Failed, 
-                                           LoggingConstants.MessageType.UserUpdateEvent, 
-                                           "Unavailable", 
-                                           message: ex.Message);
+                // Log BatchPublisherProcessingFailedInternalServerError and return HTTP 500 with the invocation Id for correlation with the logged error message. 
+                log.LogStructuredError(ex,
+                                       LoggingConstants.EventId.BatchPublisherProcessingFailedInternalServerError,
+                                       LoggingConstants.SpanCheckpointId.BatchPublisherFinish,
+                                       LoggingConstants.Status.Failed,
+                                       LoggingConstants.InterfaceId.UserEventPub01,
+                                       LoggingConstants.MessageType.UserUpdateEventBatch,
+                                       batchId: batchId,
+                                       correlationId: null,
+                                       message: ex.Message);
 
-                    return new ObjectResult(new ApiResponse(StatusCodes.Status500InternalServerError, ctx.InvocationId.ToString(), "Internal Server Error")) {StatusCode = StatusCodes.Status500InternalServerError };
-                }
+                return new ObjectResult(new ApiResponse(StatusCodes.Status500InternalServerError, ctx.InvocationId.ToString(), "Internal Server Error")) { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 
@@ -97,57 +145,56 @@ namespace Integration.Observability.PubSub.FnApp
             ProcessUserEventPublishing(string eventsAsJson, string invocationId, ILogger log)
         {
             var messages = new List<Message>();
+            string batchId = invocationId; // batchId is defined with the Azure Function invocationId
+            string correlationId;
+            string messageId;
 
             // Validate the payload
             if (!TryDeserialiseUserEvents(eventsAsJson, out var userEventsMessage))
             {
-                // If paylod is not valid
-                // Log PublisherBatchReceiptFailedBadRequest error due to invalid request body and return HTTP 400 with the invocation Id for correlation with the logged error message.
-                log.LogStructured(LogLevel.Error,
-                                  (int)LoggingConstants.EventId.PublisherBatchReceiptFailedBadRequest,
-                                  LoggingConstants.SpanId.PublisherBatchReceipt,
-                                  LoggingConstants.Status.Failed,
-                                  LoggingConstants.MessageType.UserUpdateEvent,
-                                  "Unavailable", "Invalid request body");
 
-                // Return BadRequest
-                return (new BadRequestObjectResult(new ApiResponse(StatusCodes.Status400BadRequest, invocationId, "Invalid request body")), null, null);
+                // If paylod is not valid, return HTTP 400 BadRequest with the invocation Id for correlation.
+                return (
+                    new BadRequestObjectResult(
+                        new ApiResponse(StatusCodes.Status400BadRequest, invocationId, "Invalid request body")),
+                    null, null);
             }
 
             var userEvents = (List<UserEventDto>)userEventsMessage.Data;
 
-            // Log PublisherBatchReceiptSucceeded
-            log.LogStructured(LogLevel.Information,
-                              (int)LoggingConstants.EventId.PublisherBatchReceiptSucceeded,
-                              LoggingConstants.SpanId.PublisherBatchReceipt,
-                              LoggingConstants.Status.Succeeded,
-                              LoggingConstants.MessageType.UserUpdateEvent,
-                              userEventsMessage.Id,
-                              recordCount: userEvents.Count);
-
             // Debatch the message into multiple events and prepare them to be sent to Service Bus.
             foreach (var userEvent in userEvents)
             {
+                // correlationId is defined with the invocationId, the CloudEvents messageId, and the individial message eventId
+                correlationId = $"{invocationId}|{userEventsMessage.Id}|{userEvent.Id}";
+
+                // messageId is defined with the source's CloudEventId and eventId. 
+                // This could be used for idempotence or de-duplication purposes. 
+                messageId = $"{userEventsMessage.Id}|{userEvent.Id}";
+
                 // Log PublisherReceiptSucceeded
                 log.LogStructured(LogLevel.Information,
-                                  (int)LoggingConstants.EventId.PublisherReceiptSucceeded,
-                                  LoggingConstants.SpanId.PublisherReceipt,
+                                  LoggingConstants.EventId.PublisherReceiptSucceeded,
+                                  LoggingConstants.SpanCheckpointId.PublisherStart,
                                   LoggingConstants.Status.Succeeded,
+                                  LoggingConstants.InterfaceId.UserEventPub01,
                                   LoggingConstants.MessageType.UserUpdateEvent,
-                                  userEventsMessage.Id,
-                                  userEvent.Id.ToString());
+                                  batchId: batchId,
+                                  correlationId: correlationId,
+                                  entityId: userEvent.Id.ToString());
 
-                // Create Service Bus message
                 var messageBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(userEvent));
 
+                // Create Service Bus message
+                // Add message properties, including those cross-span (bagagge items) tracing metadata properties 
                 var userEventMessage = new Message(messageBody)
                 {
-                    MessageId = $"{userEventsMessage.Id}.{userEvent.Id}"
+                    MessageId = messageId,
+                    CorrelationId = correlationId
                 };
 
-                // Add user properties to the Service Bus message
-                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.TraceId.ToString(), invocationId);
-                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), userEventsMessage.Id);
+                // Add user properties to the Service Bus message, including those cross-span (bagagge items) tracing metadata properties 
+                userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), batchId);
                 userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), userEvent.Id.ToString());
                 userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Source.ToString(), userEventsMessage.Source);
                 userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Timestamp.ToString(), userEvent.Timestamp.ToString("o"));
@@ -156,7 +203,11 @@ namespace Integration.Observability.PubSub.FnApp
                 messages.Add(userEventMessage);
             }
 
-            return (new ObjectResult(new ApiResponse(StatusCodes.Status202Accepted, invocationId, "Accepted")) { StatusCode = StatusCodes.Status202Accepted }, messages, userEventsMessage);
+            return (
+                new ObjectResult(new ApiResponse(StatusCodes.Status202Accepted, invocationId, "Accepted"))
+                { StatusCode = StatusCodes.Status202Accepted },
+                messages,
+                userEventsMessage);
         }
 
         /// <summary>

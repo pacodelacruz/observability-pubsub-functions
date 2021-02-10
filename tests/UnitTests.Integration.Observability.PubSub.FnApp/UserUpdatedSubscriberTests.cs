@@ -41,10 +41,10 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
         [Theory]
         [InlineData("UserEvent01ToComplete.json", 1, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Succeeded, LoggingConstants.EventId.SubscriberDeliverySucceeded)]
         [InlineData("UserEvent01ToComplete.json", 2, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Succeeded, LoggingConstants.EventId.SubscriberDeliverySucceeded)]
-        [InlineData("UserEvent06ToUnreachableTarget.json", 1, ServiceBusConstants.SettlementActions.None, LoggingConstants.Status.AttemptFailed, LoggingConstants.EventId.SubscriberDeliveryUnreachableTarget)]
-        [InlineData("UserEvent06ToUnreachableTarget.json", 2, ServiceBusConstants.SettlementActions.None, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryUnreachableTarget)]
-        [InlineData("UserEvent08SkipStaleMessage.json", 1, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Skipped, LoggingConstants.EventId.SubscriberDeliverySkippedStaleMessage)]
-        [InlineData("UserEvent08SkipStaleMessage.json", 2, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Skipped, LoggingConstants.EventId.SubscriberDeliverySkippedStaleMessage)]
+        [InlineData("UserEvent06ToUnreachableTarget.json", 1, ServiceBusConstants.SettlementActions.None, LoggingConstants.Status.AttemptFailed, LoggingConstants.EventId.SubscriberDeliveryFailedUnreachableTarget)]
+        [InlineData("UserEvent06ToUnreachableTarget.json", 2, ServiceBusConstants.SettlementActions.None, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryFailedUnreachableTarget)]
+        [InlineData("UserEvent08SkipStaleMessage.json", 1, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Discarded, LoggingConstants.EventId.SubscriberDeliveryDiscardedStaleMessage)]
+        [InlineData("UserEvent08SkipStaleMessage.json", 2, ServiceBusConstants.SettlementActions.Complete, LoggingConstants.Status.Discarded, LoggingConstants.EventId.SubscriberDeliveryDiscardedStaleMessage)]
         [InlineData("UserEvent09InvalidMessage.json", 1, ServiceBusConstants.SettlementActions.DeadLetter, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryFailedInvalidMessage)]
         [InlineData("UserEvent09InvalidMessage.json", 2, ServiceBusConstants.SettlementActions.DeadLetter, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryFailedInvalidMessage)]
 
@@ -110,17 +110,26 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
         }
 
         [Theory]
-        [InlineData("UserEvent99Exception.json", 1)]
+        [InlineData("UserEvent99Exception.json", 1, ServiceBusConstants.SettlementActions.None, LoggingConstants.Status.AttemptFailed, LoggingConstants.EventId.SubscriberDeliveryFailedException)]
+        [InlineData("UserEvent99Exception.json", 2, ServiceBusConstants.SettlementActions.None, LoggingConstants.Status.Failed, LoggingConstants.EventId.SubscriberDeliveryFailedException)]
         public void When_ProcessUserEvent_ExpectException(
             string payloadFileName,
-            int deliveryCount)
+            int deliveryCount,
+            ServiceBusConstants.SettlementActions settlementAction,
+            LoggingConstants.Status status,
+            LoggingConstants.EventId eventId)
         {
             //Arrange
             var payload = TestDataHelper.GetTestDataStringFromFile("UserEvents", payloadFileName);
             var userEventMessage = CreateServiceBusMessage(payload);
 
-            // Act & Assert
-            var ex = Assert.Throws<ApplicationException>(() => _userUpdatedSubscriber.ProcessUserEventSubscription(userEventMessage, deliveryCount, _consoleLogger));
+            // Act
+            var processResult = _userUpdatedSubscriber.ProcessUserEventSubscription(userEventMessage, deliveryCount, _consoleLogger);
+
+            // Assert
+            Assert.Equal(settlementAction, processResult.settlementAction);
+            Assert.Equal(eventId, processResult.eventId);
+            Assert.Equal(status, processResult.status);
         }
 
         #region Private Methods
@@ -131,14 +140,18 @@ namespace UnitTests.Integration.Observability.PubSub.FnApp
             var messageBody = Encoding.UTF8.GetBytes(body);
             var userEvent =JsonSerializer.Deserialize<UserEventDto>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
+            var cloudEventId = Guid.NewGuid().ToString();
+            var invocationId = Guid.NewGuid().ToString();
+            var batchId = $"{cloudEventId}|{invocationId}";
+
             var userEventMessage = new Message(messageBody)
             {
-                MessageId = $"{userEvent.Id}"
+                MessageId = $"{cloudEventId}|{userEvent.Id}",
+                CorrelationId = $"{batchId}|{userEvent.Id}",
             };
 
             // Add user properties to the Service Bus message
-            userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.TraceId.ToString(), Guid.NewGuid().ToString()); ;
-            userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), Guid.NewGuid().ToString());
+            userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.BatchId.ToString(), batchId);
             userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.EntityId.ToString(), userEvent.Id.ToString());
             userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Source.ToString(), "ClientApp");
             userEventMessage.UserProperties.Add(ServiceBusConstants.MessageUserProperties.Timestamp.ToString(), userEvent.Timestamp.ToString("o"));
