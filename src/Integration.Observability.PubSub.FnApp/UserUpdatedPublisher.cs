@@ -53,7 +53,7 @@ namespace Integration.Observability.PubSub.FnApp
                                   LoggingConstants.SpanCheckpointId.BatchPublisherStart,
                                   LoggingConstants.Status.Succeeded,
                                   LoggingConstants.InterfaceId.UserEventPub01,
-                                  LoggingConstants.MessageType.UserUpdateEventBatch,
+                                  LoggingConstants.EntityType.UserUpdateEventBatch,
                                   batchId: batchId,
                                   correlationId: null);
 
@@ -73,7 +73,7 @@ namespace Integration.Observability.PubSub.FnApp
                                       LoggingConstants.SpanCheckpointId.BatchPublisherFinish,
                                       LoggingConstants.Status.Failed,
                                       LoggingConstants.InterfaceId.UserEventPub01,
-                                      LoggingConstants.MessageType.UserUpdateEventBatch,
+                                      LoggingConstants.EntityType.UserUpdateEventBatch,
                                       batchId: batchId,
                                       correlationId: null,
                                       message: "Invalid request body");
@@ -94,7 +94,7 @@ namespace Integration.Observability.PubSub.FnApp
                                           LoggingConstants.SpanCheckpointId.PublisherFinish,
                                           LoggingConstants.Status.Succeeded,
                                           LoggingConstants.InterfaceId.UserEventPub01,
-                                          LoggingConstants.MessageType.UserUpdateEvent,
+                                          LoggingConstants.EntityType.UserUpdateEvent,
                                           batchId: batchId,
                                           correlationId: message.CorrelationId,
                                           entityId: entityId.ToString());
@@ -107,7 +107,7 @@ namespace Integration.Observability.PubSub.FnApp
                                       LoggingConstants.SpanCheckpointId.BatchPublisherFinish,
                                       LoggingConstants.Status.Succeeded,
                                       LoggingConstants.InterfaceId.UserEventPub01,
-                                      LoggingConstants.MessageType.UserUpdateEventBatch,
+                                      LoggingConstants.EntityType.UserUpdateEventBatch,
                                       batchId: batchId,
                                       correlationId: null,
                                       entityId: processResult.userEventsMessage.Id,
@@ -124,7 +124,7 @@ namespace Integration.Observability.PubSub.FnApp
                                        LoggingConstants.SpanCheckpointId.BatchPublisherFinish,
                                        LoggingConstants.Status.Failed,
                                        LoggingConstants.InterfaceId.UserEventPub01,
-                                       LoggingConstants.MessageType.UserUpdateEventBatch,
+                                       LoggingConstants.EntityType.UserUpdateEventBatch,
                                        batchId: batchId,
                                        correlationId: null,
                                        message: ex.Message);
@@ -178,7 +178,7 @@ namespace Integration.Observability.PubSub.FnApp
                                   LoggingConstants.SpanCheckpointId.PublisherStart,
                                   LoggingConstants.Status.Succeeded,
                                   LoggingConstants.InterfaceId.UserEventPub01,
-                                  LoggingConstants.MessageType.UserUpdateEvent,
+                                  LoggingConstants.EntityType.UserUpdateEvent,
                                   batchId: batchId,
                                   correlationId: correlationId,
                                   entityId: userEvent.Id.ToString());

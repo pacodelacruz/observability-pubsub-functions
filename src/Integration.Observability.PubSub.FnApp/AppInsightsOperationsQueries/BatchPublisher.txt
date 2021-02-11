@@ -1,4 +1,6 @@
-﻿//All trace events related to the 'BatchPublisher' span
+﻿// All trace events related to the 'BatchPublisher' span
+// Correlates the Start and Finish checkpoints and returns the relevant key-value pairs
+// Traces can be filtered uncommenting the filters at the bottom and adding the corresponding filter values
 traces 
 | sort by timestamp desc 
 | where customDimensions.prop__SpanCheckpointId == 'BatchPublisherStart'
@@ -31,4 +33,4 @@ traces
 // Optional filters, uncomment if/when required
 //| where InterfaceId contains "" // Filters based on the InterfaceId
 //| where EntityType == "" // Filters based on the EntityType 
-//| where EntityId == "159487280007" // Filters based on the EntityId
+//| where EntityId == "" // Filters based on the EntityId

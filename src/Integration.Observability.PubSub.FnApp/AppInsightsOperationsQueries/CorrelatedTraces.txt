@@ -1,6 +1,7 @@
 ﻿// Correlated traces
-// Joins the traces of the key spans in the lifespan of a message. 
+// Correlates the Start and Finish checkpoints of both the Publisher and Subscriber spans and returns the relevant key-value pairs
 // For those messages that are retried in the Susbcriber span, it shows the values of the last recorded attempt. 
+// Traces can be filtered uncommenting the filters at the bottom and adding the corresponding filter values
 traces 
 | sort by timestamp desc 
 | where customDimensions.prop__SpanCheckpointId == 'PublisherStart'

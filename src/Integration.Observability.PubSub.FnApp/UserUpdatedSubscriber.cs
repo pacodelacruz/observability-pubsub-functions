@@ -23,7 +23,7 @@ namespace Integration.Observability.PubSub.FnApp
         }
 
         /// <summary>
-        /// Receives a Service Bus message and process it. 
+        /// Receives a Service Bus message and simulates the delivery to a target system.
         /// </summary>
         /// <param name="userEventMessage"></param>
         /// <param name="lockToken"></param>
@@ -92,7 +92,7 @@ namespace Integration.Observability.PubSub.FnApp
                               LoggingConstants.SpanCheckpointId.SubscriberStart,
                               LoggingConstants.Status.Succeeded,
                               LoggingConstants.InterfaceId.UserEventSub01, 
-                              LoggingConstants.MessageType.UserUpdateEvent,
+                              LoggingConstants.EntityType.UserUpdateEvent,
                               batchId: batchId.ToString(),
                               correlationId: userEventMessage.CorrelationId,
                               entityId: entityId.ToString(),
@@ -120,7 +120,7 @@ namespace Integration.Observability.PubSub.FnApp
                                   LoggingConstants.SpanCheckpointId.SubscriberFinish,
                                   processResultStatus,
                                   LoggingConstants.InterfaceId.UserEventSub01, 
-                                  LoggingConstants.MessageType.UserUpdateEvent,
+                                  LoggingConstants.EntityType.UserUpdateEvent,
                                   batchId: batchId.ToString(),
                                   correlationId: userEventMessage.CorrelationId,
                                   entityId: entityId.ToString(),
@@ -151,7 +151,7 @@ namespace Integration.Observability.PubSub.FnApp
                                        LoggingConstants.SpanCheckpointId.SubscriberFinish,
                                        failedStatus,
                                        LoggingConstants.InterfaceId.UserEventSub01, 
-                                       LoggingConstants.MessageType.UserUpdateEvent,
+                                       LoggingConstants.EntityType.UserUpdateEvent,
                                        batchId: batchId?.ToString(),
                                        correlationId: userEventMessage?.CorrelationId,
                                        entityId: entityId?.ToString(),

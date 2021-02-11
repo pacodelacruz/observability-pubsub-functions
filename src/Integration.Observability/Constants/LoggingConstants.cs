@@ -43,7 +43,7 @@
         }
 
         /// <summary>
-        /// The span execution status
+        /// The span checkpoint execution status
         /// </summary>
         public enum Status
         {
@@ -55,10 +55,10 @@
         }
 
         /// <summary>
-        /// The entity being processed in the span. 
+        /// The entity type being processed in the span. 
         /// Add when more message types are being processed. 
         /// </summary>
-        public enum MessageType
+        public enum EntityType
         {
             UserUpdateEventBatch,
             UserUpdateEvent
