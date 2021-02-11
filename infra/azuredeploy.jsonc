@@ -278,7 +278,7 @@
       "resources": [
         {
           "type": "sourcecontrols",
-          "name": "GitHub",
+          "name": "web",
           "apiVersion": "2018-11-01",
           "dependsOn": [
             "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]"
