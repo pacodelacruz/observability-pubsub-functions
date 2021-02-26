@@ -127,7 +127,7 @@ namespace Integration.Observability.PubSub.FnApp
                                   message: processResult.message,
                                   deliveryCount: deliveryCountToLog);
 
-                // If successfully delivered or skipped because not relevant, complete the message. 
+                // If successfully delivered or discarded because not relevant, complete the message. 
                 if (processResultStatus == LoggingConstants.Status.Succeeded || processResultStatus == LoggingConstants.Status.Discarded)
                 {
                     settlementAction = ServiceBusConstants.SettlementActions.Complete;
