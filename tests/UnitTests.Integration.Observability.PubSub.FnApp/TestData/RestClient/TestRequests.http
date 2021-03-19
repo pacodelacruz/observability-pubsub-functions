@@ -3,6 +3,10 @@
 @functionHost=https://fncapp-xyz.azurewebsites.net
 @host={{functionHost}}
 
+### idPrefix: 20210227GIB000
+###
+
+
 ### Send
 POST {{host}}/userupdated
 Content-Type: application/json
@@ -12,35 +16,14 @@ Content-Type: application/json
   "type" : "user.updated",
   "source" : "ClientApp",
   "subject": null,
-  "id" : "123456789",
+  "id" : "20210227GIB00001",
   "time" : "2021-01-16T17:31:00Z",
   "datacontenttype" : "application/json",
-  "data": [
-    {
-      "id": 1,
-      "userName": "janey",
-      "email": "janey@demo.com.au",
-      "role": "Super Manager",
-      "givenName": "Jane",
-      "familyName": "Y",
-      "phoneNumber": "00 000 000 000",
-      "timestamp": "2021-01-16T17:31:00Z"
-    },
-    {
-      "id": 2,
-      "userName": "johnx",
-      "email": "johnx@demo.com.au",
-      "role": "Super Role",
-      "givenName": "John",
-      "familyName": "X",
-      "phoneNumber": "00 000 000 000",
-      "timestamp": "2021-01-16T17:31:00Z"
-    }
-  ]
+  "data": []
 }
 
-### idPrefix: 1594872800
 ###
+
 POST {{host}}/userupdated
 Content-Type: application/json
 
@@ -49,12 +32,12 @@ Content-Type: application/json
   "type" : "user.updated",
   "source" : "ClientApp",
   "subject": null,
-  "id" : "159487280001",
+  "id" : "20210227GIB00002",
   "time" : "2021-01-16T17:31:00Z",
   "datacontenttype" : "application/json",
   "data": [
     {
-      "id": 1,
+      "id": 76,
       "userName": "janey",
       "email": "janey@demo.com.au",
       "role": "Super Manager",
@@ -265,7 +248,7 @@ Content-Type: application/json
   "type" : "user.updated",
   "source" : "ClientApp",
   "subject": null,
-  "id" : "159487280002",
+  "id" : "20210227GIB00002",
   "time" : "2021-01-16T17:31:00Z",
   "datacontenttype" : "application/json",
   "data": [
@@ -431,7 +414,7 @@ Content-Type: application/json
   "type" : "user.updated",
   "source" : "ClientApp",
   "subject": null,
-  "id" : "159487280003",
+  "id" : "20210227GIB00003",
   "time" : "2021-01-16T17:31:00Z",
   "datacontenttype" : "application/json",
   "data": [
@@ -487,7 +470,7 @@ Content-Type: application/json
   "type" : "user.updated",
   "source" : "ClientApp",
   "subject": null,
-  "id" : "159487280004",
+  "id" : "20210227GIB00004",
   "time" : "2021-01-16T17:31:00Z",
   "datacontenttype" : "application/json",
   "data": [
@@ -603,7 +586,7 @@ Content-Type: application/json
   "type" : "user.updated",
   "source" : "ClientApp",
   "subject": null,
-  "id" : "159487280005",
+  "id" : "20210227GIB00005",
   "time" : "2021-01-16T17:31:00Z",
   "datacontenttype" : "application/json",
   "data": []
@@ -618,7 +601,7 @@ Content-Type: application/json
   "type" : "user.updated",
   "source" : "ClientApp",
   "subject": null,
-  "id" : "159487280006",
+  "id" : "20210227GIB00006",
   "time" : "2021-01-16T17:31:00Z",
   "datacontenttype" : "application/json",
   "data": [
@@ -644,7 +627,7 @@ Content-Type: application/json
   "type" : "user.updated",
   "source" : "ClientApp",
   "subject": null,
-  "id" : "159487280007",
+  "id" : "20210227GIB00007",
   "time" : "2021-01-16T17:31:00Z",
   "datacontenttype" : "application/json",
   "data": [
